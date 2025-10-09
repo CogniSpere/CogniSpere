@@ -1,0 +1,38 @@
+{
+  "Core Roles": [
+    {
+      "name": "Initiator (Spark)",
+      "description": "Begins a conversation, thread, or issue log. Sets civic patterns into motion."
+    },
+    {
+      "name": "Mirror (Witness)",
+      "description": "Replicates content for visibility, adds commentary, ensures presence is seen."
+    },
+    {
+      "name": "Connector (Bridge)",
+      "description": "Links local actions or issues to national or global contexts."
+    },
+    {
+      "name": "Responder (Dialogue)",
+      "description": "Asks clarifying questions, provides constructive challenges, or adds context."
+    },
+    {
+      "name": "Observer (Silent Presence)",
+      "description": "Archives, witnesses, and ensures continuity without direct intervention."
+    }
+  ],
+  "Extended Roles": [
+    {
+      "name": "Architect (Framework)",
+      "description": "Creates templates, structures, or index pages to help others participate efficiently."
+    },
+    {
+      "name": "Catalyst (Amplifier)",
+      "description": "Uses media or networks to spread civic entries and increase ripple effect."
+    },
+    {
+      "name": "Guardian (Record-Keeper)",
+      "description": "Ensures integrity of archives, ledgers, and EI signatures."
+    }
+  ]
+}

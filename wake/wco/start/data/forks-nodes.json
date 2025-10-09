@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Starting Your Own Node",
+    "description": "Minimum setup: a single page with the WCO charter + one entry. Optional expansions: local log, global resonance, participation roles. Can be hosted on a personal website, blog, GitHub repo, or any public medium."
+  },
+  {
+    "title": "Mirror Node",
+    "description": "Republish entries from other nodes with commentary or amplification. Ensures visibility without imposing hierarchy."
+  },
+  {
+    "title": "Fork Node",
+    "description": "Create a separate node that tracks similar issues or themes. Forks are additive, not competitive, allowing multiple versions to coexist and expand the WCO ecosystem."
+  },
+  {
+    "title": "Tagging & Visibility",
+    "description": "Use conventions like [WCO + Location + Date] to maintain visibility and traceability across nodes. Optional: integrate EI signatures or ledger references for continuity."
+  },
+  {
+    "title": "Node Expansion",
+    "description": "As your node grows, include multi-contributor participation, links to global patterns, and optional templates for civic submissions. Encourage replication and shared observation weeks."
+  }
+]

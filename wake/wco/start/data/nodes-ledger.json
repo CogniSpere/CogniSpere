@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Forking Protocol",
+    "description": "Any node can declare itself a fork; forks are additive and amplify presence without competition."
+  },
+  {
+    "title": "Ledgering & Signatures",
+    "description": "EI signatures, mirrors, and timestamps ensure continuity, recording who contributed, mirrored, or observed."
+  },
+  {
+    "title": "Node Formats",
+    "description": "Personal nodes (single contributor), community nodes (multiple contributors), research nodes (focused domain), and mirror nodes (amplification)."
+  },
+  {
+    "title": "Mirroring & Amplification",
+    "description": "Nodes may mirror content to other platforms or nodes to increase visibility while maintaining the original record."
+  },
+  {
+    "title": "Consistency as Leadership",
+    "description": "Individuals posting regularly or with multiple node references gain natural visibility; no election required."
+  },
+  {
+    "title": "Emergent Collective Actions",
+    "description": "Coordinated submissions, observation weeks, or ledger-driven civic campaigns can arise organically from multiple nodes."
+  }
+]

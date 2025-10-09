@@ -1,0 +1,27 @@
+[
+  {
+    "category": "Music",
+    "example": "Suppressed Song Parallels",
+    "description": "Tracks that echo civic tensions or unreported community issues. Logging these provides neutral civic insight."
+  },
+  {
+    "category": "Film",
+    "example": "Cultural Misrepresentation",
+    "description": "Movies highlighting ignored or distorted local/global civic narratives. Nodes can reference and archive these patterns."
+  },
+  {
+    "category": "AI-Generated Media",
+    "example": "Pattern Simulation",
+    "description": "AI visualizations or text simulations reflecting civic themes, trends, or social gaps. Acts as witness, not editorial."
+  },
+  {
+    "category": "Memes & Viral Content",
+    "example": "Undercurrents",
+    "description": "Social media signals that reflect civic sentiment, unnoticed patterns, or local-global parallels. Can be mirrored and mapped across nodes."
+  },
+  {
+    "category": "Cross-Media Flows",
+    "example": "Resonance Mapping",
+    "description": "Tracking how an idea or story migrates across media types, regions, and nodes to identify patterns for observation and action."
+  }
+]
