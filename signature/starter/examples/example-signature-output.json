@@ -1,0 +1,14 @@
+{
+  "@signature": {
+    "mode": "reflective",
+    "components": {
+      "sig:modality": "text",
+      "sig:reasoningHeuristic": "synthesis",
+      "sig:confidenceModeling": "mixed",
+      "sig:sourceAttribution": "implicit",
+      "sig:intentDeclaration": "exploratory"
+    },
+    "generatedBy": "gpt-4o",
+    "timestamp": "2025-07-28T19:30:00Z"
+  }
+}

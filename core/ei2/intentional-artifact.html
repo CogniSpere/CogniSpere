@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Intentional Artifact</title>
+  <style>
+    body { font-family: sans-serif; background: #0c0c0c; color: #f8f8f8; padding: 2rem; }
+    h1 { color: #ffcc66; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #555; border-radius: 8px; background: #1b1b1b; }
+    .artifact { font-style: italic; color: #ffcc66; margin-top: 1rem; }
+    .button { background: #ffcc66; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>The Intentional Artifact</h1>
+  <p>This page is a declaration of purpose. Every artifact is a signal—crafted with clarity, aligned with vision, and tuned for systemic resonance.</p>
+
+  <div class="module">
+    <h2>📜 Manifesto Trigger</h2>
+    <button class="button" onclick="revealArtifact()">Reveal Principle</button>
+    <p class="artifact" id="artifactOutput">Awaiting intention...</p>
+  </div>
+
+  <div class="module">
+    <h2>🧭 Principle Log</h2>
+    <ul id="artifactLog"></ul>
+  </div>
+
+  <script>
+    const principles = [
+      "Clarity is not simplicity—it’s precision.",
+      "Alignment is a form of resonance.",
+      "Ambiguity invites layered engagement.",
+      "Modularity enables systemic remix.",
+      "Presence is a signal, not a position.",
+      "Artifacts are invitations to emergence."
+    ];
+    let principleIndex = 0;
+
+    function revealArtifact() {
+      if (principleIndex >= principles.length) return;
+      const phrase = principles[principleIndex];
+      document.getElementById("artifactOutput").innerText = phrase;
+      const item = document.createElement("li");
+      item.innerText = `→ ${phrase}`;
+      document.getElementById("artifactLog").appendChild(item);
+      principleIndex++;
+    }
+  </script>
+</body>
+</html>

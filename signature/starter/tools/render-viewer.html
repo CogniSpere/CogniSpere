@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signature Viewer</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    pre { background: #eee; padding: 1rem; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Signature Viewer</h1>
+  <input type="file" id="fileInput" />
+  <pre id="output"></pre>
+
+  <script>
+    document.getElementById('fileInput').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const content = JSON.parse(e.target.result);
+        document.getElementById('output').textContent = JSON.stringify(content, null, 2);
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "@context": "https://signature.ai/context/v1",
+  "version": "1.0.0",
+  "signatureModes": ["reflective", "forensic", "structural", "communicative"],
+  "components": [
+    {
+      "id": "sig:modality",
+      "label": "Modality",
+      "category": "inherent",
+      "description": "The representational form of the content",
+      "types": ["text", "image", "audio", "video", "code", "multi-modal"]
+    },
+    {
+      "id": "sig:reasoningHeuristic",
+      "label": "Reasoning Heuristic",
+      "category": "cognitive",
+      "description": "Primary reasoning approach or generative method",
+      "types": ["deduction", "analogy", "synthesis", "pattern-matching", "heuristic"]
+    },
+    {
+      "id": "sig:confidenceModeling",
+      "label": "Confidence Modeling",
+      "category": "generative",
+      "description": "Self-reported or inferred confidence signal",
+      "types": ["low", "medium", "high", "mixed", "unknown"]
+    },
+    {
+      "id": "sig:sourceAttribution",
+      "label": "Source Attribution",
+      "category": "relational",
+      "description": "How sources or references are indicated",
+      "types": ["none", "explicit", "implicit", "mixed", "traced"]
+    },
+    {
+      "id": "sig:intentDeclaration",
+      "label": "Intent Declaration",
+      "category": "communicative",
+      "description": "Declared purpose or orientation of the content",
+      "types": ["informative", "persuasive", "exploratory", "performative", "ambiguous"]
+    }
+  ],
+  "extensions": [],
+  "validation": {
+    "requiredFields": ["id", "label", "category", "description", "types"],
+    "allowedCategories": ["inherent", "contextual", "relational", "cognitive", "generative", "communicative"]
+  },
+  "localization": {
+    "defaultLanguage": "en",
+    "translations": {
+      "sig:modality": {
+        "es": "Modalidad",
+        "zh": "模态",
+        "de": "Modalität"
+      }
+    }
+  },
+  "mappings": {
+    "sig:modality": {
+      "schema.org": "contentType",
+      "dcterms": "format"
+    }
+  }
+}

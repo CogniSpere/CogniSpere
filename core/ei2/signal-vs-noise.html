@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signal vs. Noise</title>
+  <style>
+    body { font-family: sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 2rem; }
+    h1 { color: #00ffe0; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #444; border-radius: 8px; background: #1a1a1a; }
+    .toggle { cursor: pointer; color: #00ffe0; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Signal vs. Noise</h1>
+  <p>This page explores the art of extracting cultural signal from systemic noise. It’s a meditation on relevance, resonance, and remixability.</p>
+
+  <div class="module">
+    <h2>🧩 Modular Filter</h2>
+    <p>Use this toggle to simulate filtering logic:</p>
+    <button class="toggle" onclick="toggleSignal()">Toggle Signal Filter</button>
+    <div id="signalBox">Noise detected. Signal unclear.</div>
+  </div>
+
+  <div class="module">
+    <h2>📡 Semantic Presence</h2>
+    <p>Signal strength: <span id="signalStrength">Low</span></p>
+  </div>
+
+  <script>
+    let signalOn = false;
+    function toggleSignal() {
+      signalOn = !signalOn;
+      document.getElementById("signalBox").innerText = signalOn
+        ? "Signal isolated. Cultural resonance detected."
+        : "Noise detected. Signal unclear.";
+      document.getElementById("signalStrength").innerText = signalOn ? "High" : "Low";
+    }
+  </script>
+</body>
+</html>

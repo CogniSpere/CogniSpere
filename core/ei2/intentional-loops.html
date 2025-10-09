@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intentional Loops</title>
+  <style>
+    body { font-family: sans-serif; background: #0e0e0e; color: #f8f8f8; padding: 2rem; }
+    h1 { color: #ff4444; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #555; border-radius: 8px; background: #1a1a1a; }
+    .loop { margin-top: 1rem; font-style: italic; color: #ff4444; }
+    .button { background: #ff4444; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Intentional Loops</h1>
+  <p>This page explores the difference between passive repetition and purposeful recursion. Loops can trap—or they can evolve.</p>
+
+  <div class="module">
+    <h2>🔁 Loop Simulator</h2>
+    <button class="button" onclick="runLoop()">Run Loop</button>
+    <p class="loop" id="loopOutput">Loop state: dormant</p>
+  </div>
+
+  <div class="module">
+    <h2>🧠 Loop Log</h2>
+    <ul id="loopLog"></ul>
+  </div>
+
+  <script>
+    const loopSteps = [
+      "Recognize the pattern.",
+      "Interrupt the default.",
+      "Insert intention.",
+      "Remix the structure.",
+      "Emerge with clarity."
+    ];
+    let loopIndex = 0;
+
+    function runLoop() {
+      if (loopIndex >= loopSteps.length) return;
+      document.getElementById("loopOutput").innerText = `Loop state: ${loopSteps[loopIndex]}`;
+      const item = document.createElement("li");
+      item.innerText = `→ ${loopSteps[loopIndex++]}`;
+      document.getElementById("loopLog").appendChild(item);
+    }
+  </script>
+</body>
+</html>

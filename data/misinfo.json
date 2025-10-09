@@ -1,0 +1,8 @@
+<!-- ========================= /data/misinfo.json ========================= -->
+<script type="application/json" id="misinfo-seed">
+[
+{ "tag": "Conflation", "headline": "Two different studies magically become one grand proof", "risk": "medium", "note": "Watch for swapped denominators" },
+{ "tag": "Sockpuppet", "headline": "New account agrees vigorously with itself", "risk": "low", "note": "Avatar created yesterday" },
+{ "tag": "Context Collapse", "headline": "Quote escapes original timeline and becomes prophecy", "risk": "medium", "note": "No source, high vibe" }
+]
+</script>

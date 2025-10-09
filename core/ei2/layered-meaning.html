@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Layered Meaning Architectures</title>
+  <style>
+    body { font-family: sans-serif; background: #0e0e0e; color: #f0f0f0; padding: 2rem; }
+    h1 { color: #66ccff; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #444; border-radius: 8px; background: #1b1b1b; }
+    .layer { margin-top: 1rem; font-style: italic; color: #66ccff; }
+    .button { background: #66ccff; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Layered Meaning Architectures</h1>
+  <p>This page builds a semantic stack from surface to depth. Each layer reveals a new dimension of resonance, ambiguity, and intent.</p>
+
+  <div class="module">
+    <h2>🧠 Reveal Layer</h2>
+    <button class="button" onclick="revealLayer()">Reveal Next</button>
+    <p class="layer" id="layerOutput">Layer 0: Surface — “clarity”</p>
+  </div>
+
+  <div class="module">
+    <h2>📚 Semantic Stack</h2>
+    <ul id="layerLog"></ul>
+  </div>
+
+  <script>
+    const layers = [
+      "Surface — “clarity”",
+      "Symbolic — “gesture”",
+      "Contextual — “echo”",
+      "Latent — “ghost”",
+      "Systemic — “resonance”",
+      "Mythic — “absence”",
+      "Emergent — “invitation”"
+    ];
+    let layerIndex = 0;
+
+    function revealLayer() {
+      if (layerIndex >= layers.length) return;
+      const phrase = `Layer ${layerIndex + 1}: ${layers[layerIndex]}`;
+      document.getElementById("layerOutput").innerText = phrase;
+      const item = document.createElement("li");
+      item.innerText = `→ ${phrase}`;
+      document.getElementById("layerLog").appendChild(item);
+      layerIndex++;
+    }
+  </script>
+</body>
+</html>

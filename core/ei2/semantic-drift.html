@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semantic Drift</title>
+  <style>
+    body { font-family: sans-serif; background: #0d0d0d; color: #eaeaea; padding: 2rem; }
+    h1 { color: #00ccff; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #444; border-radius: 8px; background: #1a1a1a; }
+    .drift { font-style: italic; color: #00ccff; }
+    .slider { width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Semantic Drift</h1>
+  <p>This page visualizes how meaning evolves across networks, contexts, and time. Drift is not decay—it’s transformation.</p>
+
+  <div class="module">
+    <h2>🌀 Drift Simulator</h2>
+    <label for="driftRange">Adjust Drift Level:</label>
+    <input type="range" min="0" max="100" value="0" class="slider" id="driftRange" oninput="updateDrift(this.value)" />
+    <p class="drift" id="driftOutput">Original meaning: “presence”</p>
+  </div>
+
+  <div class="module">
+    <h2>📚 Drift Log</h2>
+    <ul id="driftLog"></ul>
+  </div>
+
+  <script>
+    const meanings = [
+      "presence",
+      "signal",
+      "trace",
+      "echo",
+      "artifact",
+      "ghost",
+      "gesture",
+      "pattern",
+      "resonance",
+      "absence"
+    ];
+
+    function updateDrift(value) {
+      const index = Math.floor((value / 100) * (meanings.length - 1));
+      const current = meanings[index];
+      document.getElementById("driftOutput").innerText = `Drifted meaning: “${current}”`;
+
+      const log = document.getElementById("driftLog");
+      log.innerHTML = "";
+      for (let i = 0; i <= index; i++) {
+        const item = document.createElement("li");
+        item.innerText = `→ ${meanings[i]}`;
+        log.appendChild(item);
+      }
+    }
+  </script>
+</body>
+</html>

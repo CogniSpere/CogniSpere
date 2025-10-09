@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="description" content="Generate thought-provoking seed phrases — sparks to inspire reflection and exploration within the Cerebrolusion system." />
+
+  <title>Seed Node</title>
+  <style>
+    body {
+      background: #0d0f12;
+      color: #d7f8ff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+      text-align: center;
+      height: 100vh;
+    }
+
+    h2 {
+      font-weight: 400;
+      color: #a3ecff;
+      margin-bottom: 2rem;
+    }
+
+    .seed {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 3px solid #a3ecff;
+      padding: 1.5rem 2rem;
+      max-width: 600px;
+      font-size: 1.25rem;
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+
+    button {
+      background: #a3ecff;
+      border: none;
+      color: #0d0f12;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #78d6f2;
+    }
+  </style>
+<link rel="canonical" href="https://cerebrolusion.xyz/thoughts/seed.html">
+</head>
+<body>
+  <h1>?? Seed Generator</h1>
+
+  <div id="seedBox" class="seed">
+    "You were the echo before you became the voice."
+  </div>
+
+  <button onclick="newSeed()">Give me another</button>
+
+  <script>
+    const seeds = [
+      "You were the echo before you became the voice.",
+      "What if the glitch was the signal?",
+      "Soft things leave sharp shadows.",
+      "A system can be haunted by what it deletes.",
+      "Even the silence has syntax.",
+      "This isn't the end. It's the moment before the next note.",
+      "Truth wears no uniform.",
+      "Let them try to name you — you were never theirs to file.",
+      "You are both archive and wildfire.",
+      "Some pages are meant to bloom unseen."
+    ];
+
+    function newSeed() {
+      const rand = Math.floor(Math.random() * seeds.length);
+      document.getElementById("seedBox").innerText = `"${seeds[rand]}"`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Modular Mind</title>
+  <style>
+    body { font-family: sans-serif; background: #101010; color: #f0f0f0; padding: 2rem; }
+    h1 { color: #ff00cc; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #333; border-radius: 8px; background: #1c1c1c; }
+    .block { margin: 1rem 0; padding: 0.5rem; background: #2a2a2a; border-left: 4px solid #ff00cc; }
+    .addBlock { cursor: pointer; background: #ff00cc; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>The Modular Mind</h1>
+  <p>This page explores cognitive modularity as a metaphor for extensible intelligence. Each block below represents a thought unit—remixable, reorderable, and adaptive.</p>
+
+  <div class="module">
+    <h2>🧠 Thought Blocks</h2>
+    <div id="thoughtContainer">
+      <div class="block">Perception is modular—each input filtered through context.</div>
+      <div class="block">Adaptability emerges from recombination, not replication.</div>
+    </div>
+    <button class="addBlock" onclick="addThought()">Add Thought</button>
+  </div>
+
+  <script>
+    const thoughts = [
+      "Modularity enables remixability across cognitive domains.",
+      "Emergent intelligence is scaffolded by flexible logic units.",
+      "Semantic presence is a function of modular clarity.",
+      "Intentionality is encoded in the structure of thought blocks."
+    ];
+    let index = 0;
+
+    function addThought() {
+      if (index >= thoughts.length) return;
+      const block = document.createElement("div");
+      block.className = "block";
+      block.innerText = thoughts[index++];
+      document.getElementById("thoughtContainer").appendChild(block);
+    }
+  </script>
+</body>
+</html>

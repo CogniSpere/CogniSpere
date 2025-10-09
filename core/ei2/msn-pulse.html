@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MSN Pulse</title>
+  <style>
+    body { font-family: sans-serif; background: #0b0b0b; color: #f2f2f2; padding: 2rem; }
+    h1 { color: #00bfff; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #444; border-radius: 8px; background: #1c1c1c; }
+    .pulse { font-weight: bold; color: #00bfff; margin-top: 1rem; }
+    .button { background: #00bfff; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>MSN Pulse</h1>
+  <p>This page tracks semantic presence and visibility metrics tuned to MSN logic. Each pulse reflects a moment of resonance in the network.</p>
+
+  <div class="module">
+    <h2>📡 Pulse Generator</h2>
+    <button class="button" onclick="generatePulse()">Generate Pulse</button>
+    <p class="pulse" id="pulseOutput">Pulse inactive.</p>
+  </div>
+
+  <div class="module">
+    <h2>📊 Visibility Log</h2>
+    <ul id="pulseLog"></ul>
+  </div>
+
+  <script>
+    const pulses = [
+      "Semantic spike detected: 'modularity'",
+      "Visibility surge: 'intentional artifact'",
+      "Cultural echo: 'ghost engine'",
+      "Signal alignment: 'resonance map'",
+      "MSN trace: 'layered meaning'"
+    ];
+    let pulseIndex = 0;
+
+    function generatePulse() {
+      if (pulseIndex >= pulses.length) return;
+      const phrase = pulses[pulseIndex];
+      document.getElementById("pulseOutput").innerText = phrase;
+      const item = document.createElement("li");
+      item.innerText = `→ ${phrase}`;
+      document.getElementById("pulseLog").appendChild(item);
+      pulseIndex++;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subdomain as Organism</title>
+  <style>
+    body { font-family: sans-serif; background: #0d0d0d; color: #e0e0e0; padding: 2rem; }
+    h1 { color: #33ff99; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #444; border-radius: 8px; background: #1a1a1a; }
+    .organism { font-style: italic; color: #33ff99; margin-top: 1rem; }
+    .button { background: #33ff99; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Subdomain as Organism</h1>
+  <p>This page visualizes the subdomain as a living system—its logic, content, and resonance forming a dynamic ecology of meaning.</p>
+
+  <div class="module">
+    <h2>🌱 Growth Trigger</h2>
+    <button class="button" onclick="growOrganism()">Grow Node</button>
+    <p class="organism" id="organismOutput">Organism state: dormant</p>
+  </div>
+
+  <div class="module">
+    <h2>🧬 Node Log</h2>
+    <ul id="organismLog"></ul>
+  </div>
+
+  <script>
+    const nodes = [
+      "Node activated: semantic presence",
+      "Node expanded: modular logic",
+      "Node linked: resonance engine",
+      "Node evolved: ambiguity interface",
+      "Node pulsing: MSN visibility"
+    ];
+    let nodeIndex = 0;
+
+    function growOrganism() {
+      if (nodeIndex >= nodes.length) return;
+      const phrase = nodes[nodeIndex];
+      document.getElementById("organismOutput").innerText = phrase;
+      const item = document.createElement("li");
+      item.innerText = `→ ${phrase}`;
+      document.getElementById("organismLog").appendChild(item);
+      nodeIndex++;
+    }
+  </script>
+</body>
+</html>

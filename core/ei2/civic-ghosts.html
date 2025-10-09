@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Civic Ghosts</title>
+  <style>
+    body { font-family: sans-serif; background: #0a0a0a; color: #dddddd; padding: 2rem; }
+    h1 { color: #9999ff; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #333; border-radius: 8px; background: #1a1a1a; }
+    .ghost { font-style: italic; color: #9999ff; margin-top: 1rem; }
+    .button { background: #9999ff; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Civic Ghosts</h1>
+  <p>This page evokes the lingering traces of civic framing—structures that once guided collective meaning, now spectral in digital space.</p>
+
+  <div class="module">
+    <h2>👻 Ghost Trigger</h2>
+    <button class="button" onclick="summonGhost()">Summon Ghost</button>
+    <p class="ghost" id="ghostOutput">No ghost present.</p>
+  </div>
+
+  <div class="module">
+    <h2>🕸️ Trace Log</h2>
+    <ul id="ghostLog"></ul>
+  </div>
+
+  <script>
+    const ghosts = [
+      "A forgotten manifesto echoes in the metadata.",
+      "A civic ritual loops silently in the background.",
+      "A public square restructured into private code.",
+      "A declaration refracted into symbolic fragments.",
+      "A vote cast in silence, archived as gesture."
+    ];
+    let ghostIndex = 0;
+
+    function summonGhost() {
+      if (ghostIndex >= ghosts.length) return;
+      const phrase = ghosts[ghostIndex];
+      document.getElementById("ghostOutput").innerText = phrase;
+      const item = document.createElement("li");
+      item.innerText = `→ ${phrase}`;
+      document.getElementById("ghostLog").appendChild(item);
+      ghostIndex++;
+    }
+  </script>
+</body>
+</html>

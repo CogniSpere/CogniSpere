@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Collaborative Friction</title>
+  <style>
+    body { font-family: sans-serif; background: #0c0c0c; color: #f5f5f5; padding: 2rem; }
+    h1 { color: #ff6666; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #444; border-radius: 8px; background: #1a1a1a; }
+    .slider { width: 100%; }
+    .output { margin-top: 1rem; font-style: italic; color: #ff6666; }
+  </style>
+</head>
+<body>
+  <h1>Collaborative Friction</h1>
+  <p>This page explores the tension between alignment and divergence in collaboration. Friction isn’t failure—it’s fuel for emergence.</p>
+
+  <div class="module">
+    <h2>⚡ Friction Simulator</h2>
+    <label for="frictionRange">Adjust Friction Level:</label>
+    <input type="range" min="0" max="100" value="50" class="slider" id="frictionRange" oninput="updateFriction(this.value)" />
+    <p class="output" id="frictionOutput">Balance: Intentional divergence</p>
+  </div>
+
+  <div class="module">
+    <h2>🔧 Alignment Log</h2>
+    <ul id="frictionLog"></ul>
+  </div>
+
+  <script>
+    function updateFriction(value) {
+      let output = "";
+      if (value < 20) output = "Over-aligned: risk of stagnation.";
+      else if (value < 50) output = "Aligned: clarity with room for nuance.";
+      else if (value < 80) output = "Intentional divergence: productive tension.";
+      else output = "High friction: potential for breakthrough or collapse.";
+
+      document.getElementById("frictionOutput").innerText = `Balance: ${output}`;
+
+      const item = document.createElement("li");
+      item.innerText = `→ ${output}`;
+      document.getElementById("frictionLog").appendChild(item);
+    }
+  </script>
+</body>
+</html>

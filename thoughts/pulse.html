@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="description" content="Explore the Cerebrolusion Pulse Map — an interactive web of nodes representing consciousness and signal pathways.">
+
+  <title>Pulse Map</title>
+  <style>
+    body {
+      background-color: #0d0f1a;
+      color: #e0f7ff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      color: #66ccff;
+    }
+
+    svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    text {
+      font-size: 0.75rem;
+      fill: #ccc;
+    }
+
+    .label {
+      cursor: pointer;
+    }
+
+    .label:hover {
+      fill: #66ccff;
+    }
+  </style>
+<link rel="canonical" href="https://cerebrolusion.xyz/thoughts/pulse.html">
+</head>
+<body>
+  <h1>?? Cerebrolusion Pulse Map</h1>
+  <p><em>Click a node to navigate through the consciousness web.</em></p>
+
+  <svg viewBox="0 0 600 400">
+    <!-- Core Node -->
+    <circle cx="300" cy="200" r="40" fill="#66ccff" />
+    <text x="270" y="205" class="label" onclick="go('/pages/Page1.html')">Welcome</text>
+
+    <!-- Connections -->
+    <line x1="300" y1="200" x2="450" y2="150" stroke="#66ccff" />
+    <circle cx="450" cy="150" r="20" fill="#ffbb33" />
+    <text x="430" y="145" class="label" onclick="go('/pages/Page2.html')">What’s New</text>
+
+    <line x1="300" y1="200" x2="150" y2="120" stroke="#66ccff" />
+    <circle cx="150" cy="120" r="20" fill="#ff66cc" />
+    <text x="130" y="115" class="label" onclick="go('/pages/Page3.html')">Minds at Play</text>
+
+    <line x1="300" y1="200" x2="500" y2="250" stroke="#66ccff" />
+    <circle cx="500" cy="250" r="20" fill="#77ddff" />
+    <text x="475" y="245" class="label" onclick="go('/pages/Page4.html')">Signal Drift</text>
+
+    <line x1="300" y1="200" x2="100" y2="250" stroke="#66ccff" />
+    <circle cx="100" cy="250" r="20" fill="#00ccff" />
+    <text x="70" y="245" class="label" onclick="go('/pages/Page5.html')">Toolchest</text>
+
+    <line x1="300" y1="200" x2="300" y2="350" stroke="#66ccff" />
+    <circle cx="300" cy="350" r="20" fill="#ffcc66" />
+    <text x="270" y="345" class="label" onclick="go('/thoughts/panic.html')">Panic</text>
+  </svg>
+
+  <script>
+    function go(path) {
+      window.top.frames['main-frame'].location.href = path;
+    }
+  </script>
+</body>
+</html>

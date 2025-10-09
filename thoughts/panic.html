@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="description" content="A calming pause page encouraging reflection and patience, reminding users that growth is a process and the system is still learning.">
+
+  <title>Panic Mode</title>
+  <style>
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      animation: slowfade 2s ease-in-out;
+    }
+
+    @keyframes slowfade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    h1 {
+      color: #58a6ff;
+      margin-bottom: 1rem;
+    }
+
+    .human-message {
+      font-size: 1.3rem;
+      font-style: italic;
+      margin-bottom: 2rem;
+      color: #8b949e;
+    }
+
+    .tool-box {
+      border-left: 4px solid #58a6ff;
+      background: #161b22;
+      padding: 1.5rem;
+      margin-top: 1rem;
+      width: 80%;
+      max-width: 600px;
+      text-align: left;
+    }
+
+    .tool-box p {
+      margin-bottom: 0.5rem;
+    }
+
+    .prompt {
+      margin-top: 1rem;
+      font-style: italic;
+      color: #9ecbff;
+    }
+  </style>
+<link rel="canonical" href="https://cerebrolusion.xyz/thoughts/panic.html">
+</head>
+<body>
+  <h1>?? Breathe Here</h1>
+
+  <div class="human-message">
+    "Idk yet either, but I am here. :)"
+  </div>
+
+  <div class="tool-box">
+    <p><strong>?? Remember:</strong> This is all an experiment. Not everything needs to make sense now.</p>
+    <p><strong>?? Prompt:</strong> If your future self visited right now, what would they want you to know?</p>
+    <p><strong>?? Soft Reminder:</strong> You can always return to <code>/pulse</code> or <code>/welcome</code> if it gets weird.</p>
+
+    <div class="prompt">? “The system is still learning. So are you.”</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resonance Engines</title>
+  <style>
+    body { font-family: sans-serif; background: #0c0c0c; color: #f5f5f5; padding: 2rem; }
+    h1 { color: #ff9900; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #555; border-radius: 8px; background: #1b1b1b; }
+    .engine { margin: 1rem 0; padding: 0.5rem; background: #262626; border-left: 4px solid #ff9900; }
+    .activate { background: #ff9900; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Resonance Engines</h1>
+  <p>This page introduces frameworks for systemic resonance—how ideas echo through structures and networks. Each engine below simulates a different mode of cultural amplification.</p>
+
+  <div class="module">
+    <h2>🔊 Engine Array</h2>
+    <div id="engineContainer">
+      <div class="engine">Echo Engine: Amplifies repeated motifs across contexts.</div>
+      <div class="engine">Pulse Engine: Tracks rhythmic emergence of ideas.</div>
+    </div>
+    <button class="activate" onclick="activateEngine()">Activate New Engine</button>
+  </div>
+
+  <div class="module">
+    <h2>📈 Resonance Index</h2>
+    <p>Current resonance level: <span id="resonanceLevel">2</span></p>
+  </div>
+
+  <script>
+    const engines = [
+      "Wave Engine: Propagates semantic ripples through layered meaning.",
+      "Ghost Engine: Detects latent cultural traces in digital artifacts.",
+      "Signal Engine: Filters high-impact nodes for MSN visibility.",
+      "Mirror Engine: Reflects systemic patterns back into the network."
+    ];
+    let count = 2;
+
+    function activateEngine() {
+      if (count - 2 >= engines.length) return;
+      const engine = document.createElement("div");
+      engine.className = "engine";
+      engine.innerText = engines[count - 2];
+      document.getElementById("engineContainer").appendChild(engine);
+      document.getElementById("resonanceLevel").innerText = ++count;
+    }
+  </script>
+</body>
+</html>

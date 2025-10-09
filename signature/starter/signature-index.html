@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Signature Index Viewer</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f7f9fb; }
+    input { padding: 0.5rem; width: 60%; }
+    pre { background: #eee; padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>EI Signature Index</h1>
+  <input placeholder="Search key or component..." oninput="search(this.value)">
+  <pre id="output">{ loading: true }</pre>
+
+  <script>
+    const index = {
+      authenticity: { desc: "Verification and claims metadata" },
+      confidence: { desc: "Scoring and ambiguity bounds" },
+      context: { desc: "Environmental and situational info" },
+      trace: { desc: "Source and data trail" },
+      ethics: { desc: "Alignment, intent, and impact (ext)" }
+    };
+    function search(term) {
+      const res = Object.entries(index)
+        .filter(([k, _]) => k.includes(term))
+        .reduce((o, [k, v]) => ({ ...o, [k]: v }), {});
+      document.getElementById("output").textContent = JSON.stringify(res, null, 2);
+    }
+    search("");
+  </script>
+</body>
+</html>

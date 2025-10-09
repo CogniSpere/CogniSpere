@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Remix Rituals</title>
+  <style>
+    body { font-family: sans-serif; background: #0f0f0f; color: #f0f0f0; padding: 2rem; }
+    h1 { color: #ffcc00; }
+    .module { margin: 2rem 0; padding: 1rem; border: 1px solid #555; border-radius: 8px; background: #1c1c1c; }
+    .ritual { font-style: italic; color: #ffcc00; margin-top: 1rem; }
+    .button { background: #ffcc00; color: #000; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Remix Rituals</h1>
+  <p>This page offers modular templates for remixing content with cultural resonance. Each ritual is a transformation—intentional, layered, and adaptive.</p>
+
+  <div class="module">
+    <h2>🧩 Ritual Trigger</h2>
+    <button class="button" onclick="invokeRitual()">Invoke Ritual</button>
+    <p class="ritual" id="ritualOutput">No ritual invoked.</p>
+  </div>
+
+  <div class="module">
+    <h2>📜 Remix Log</h2>
+    <ul id="ritualLog"></ul>
+  </div>
+
+  <script>
+    const rituals = [
+      "Fragment → Echo → Reframe",
+      "Signal → Ghost → Pulse",
+      "Gesture → Absence → Invitation",
+      "Pattern → Drift → Resonance",
+      "Artifact → Remix → Emergence"
+    ];
+    let ritualIndex = 0;
+
+    function invokeRitual() {
+      if (ritualIndex >= rituals.length) return;
+      const phrase = rituals[ritualIndex];
+      document.getElementById("ritualOutput").innerText = `Ritual: ${phrase}`;
+      const item = document.createElement("li");
+      item.innerText = `→ ${phrase}`;
+      document.getElementById("ritualLog").appendChild(item);
+      ritualIndex++;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "$id": "mod-ethical-layer",
+  "type": "object",
+  "title": "Ethical Impact Layer",
+  "description": "Optional EI signature extension to track ethical intent and downstream impact.",
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": ["inform", "persuade", "provoke", "manipulate", "unknown"]
+    },
+    "impact": {
+      "type": "string",
+      "enum": ["positive", "neutral", "negative", "mixed"]
+    },
+    "alignment": {
+      "type": "string",
+      "enum": ["human-centric", "autonomy-centric", "multi-aligned", "misaligned"]
+    }
+  },
+  "required": ["intent", "impact"]
+}

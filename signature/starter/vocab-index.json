@@ -1,0 +1,7 @@
+{
+  "authenticity": ["verified", "claim", "source"],
+  "confidence": ["score", "range", "model"],
+  "context": ["location", "event", "entity"],
+  "trace": ["id", "source", "relationship"],
+  "ethics": ["alignment", "impact", "intent"]
+}
