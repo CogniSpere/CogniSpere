@@ -1,0 +1,51 @@
+<!--
+Cerebrolusion Starter Kit
+Folders:
+/assets/
+/modules/
+/data/
+/pages/
+Upload all files with the same paths. index.html will auto-load modules via /modules/registry.js
+-->
+
+
+<!-- ========================= index.html ========================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cerebrolusion.xyz — Cosmic Clock + Culture</title>
+<link rel="stylesheet" href="/assets/cerebrolusion.css" />
+</head>
+<body>
+<header class="site-header">
+<h1>Cerebrolusion</h1>
+<nav class="site-nav">
+<a href="#home" data-route="home">Home</a>
+<a href="#misinfo" data-route="misinfo">Misinformation</a>
+<a href="#pop" data-route="pop">EI Pop Culture</a>
+</nav>
+</header>
+
+
+<main id="app">
+<section id="home" class="route is-active">
+<div id="cosmic-countdown" class="card"></div>
+<div id="pop-culture-cast" class="card"></div>
+</section>
+<section id="misinfo" class="route">
+<div id="misinfo-ticker" class="card"></div>
+</section>
+<section id="pop" class="route">
+<div id="pop-stream" class="card"></div>
+</section>
+</main>
+
+
+<footer class="site-footer">© Cerebrolusion — EI/Human Culture Lab</footer>
+
+
+<script type="module" src="/modules/registry.js"></script>
+</body>
+</html>
