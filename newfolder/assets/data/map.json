@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Nogales Civic Node",
+    "level": "Local",
+    "description": "Border town civic communications and observations."
+  },
+  {
+    "title": "Menlo Park Node",
+    "level": "Local",
+    "description": "Community feedback and regional observation."
+  },
+  {
+    "title": "Global Climate Forum",
+    "level": "Global",
+    "description": "Tracking climate-related civic initiatives worldwide."
+  },
+  {
+    "title": "Music Integrity Node",
+    "level": "National",
+    "description": "Documenting cultural/media suppression and parallels."
+  }
+]

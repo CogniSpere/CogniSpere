@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Eplanet Thunderstriker",
+    "role": "Civic Catalyst",
+    "description": "Initiates civic observation nodes, mirrors content, and amplifies overlooked patterns. Acts as a bridge between local and global civic presence."
+  },
+  {
+    "name": "Aurora Liaison",
+    "role": "Connector",
+    "description": "Links multiple nodes, highlighting resonance patterns across regions. Focuses on cross-community visibility and collaboration."
+  },
+  {
+    "name": "Silent Witness",
+    "role": "Observer",
+    "description": "Maintains continuity in records, archives submissions, and ensures persistent presence of civic entries without direct intervention."
+  },
+  {
+    "name": "Catalyst Amplifier",
+    "role": "Media Multiplier",
+    "description": "Uses networks, social media, and mirrored nodes to amplify WCO entries and expand visibility of civic patterns."
+  }
+]

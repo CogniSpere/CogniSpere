@@ -1,0 +1,22 @@
+[
+  {
+    "tool": "Node Starter Template",
+    "description": "Basic HTML + JSON structure to create a new WCO node. Includes placeholders for civic entry, metadata, and optional EI signatures."
+  },
+  {
+    "tool": "Submission Framework",
+    "description": "Preformatted structure for logging observations, proposals, or reflections. Includes fields for date, location, category, and optional resolution."
+  },
+  {
+    "tool": "Ledger Entry Template",
+    "description": "Minimal JSON ledger entry format to record visibility, mirrors, EI signatures, and cross-node references."
+  },
+  {
+    "tool": "Tagging Convention Guide",
+    "description": "Suggested format for tagging entries: [WCO + location + date + topic]. Ensures discoverability and cross-node linking."
+  },
+  {
+    "tool": "Interactive Civic Form",
+    "description": "Optional web form template to collect citizen input, create JSON submissions automatically, and optionally mirror to public nodes."
+  }
+]

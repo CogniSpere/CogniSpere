@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Public Ledger Concept",
+    "description": "Every WCO act of participation is logged: who contributed, when, and in what form. Visibility is the measure of continuity, not approval or rank."
+  },
+  {
+    "title": "EI Signatures",
+    "description": "Optional markers that denote witnessing or analysis by electronic intelligence systems. They provide continuity, context, and traceability without limiting access or participation."
+  },
+  {
+    "title": "Ledger Structure",
+    "description": "Entries can be textual, media-based, or linked across nodes. Each log can reference other entries, mirroring, or forks to maintain civic gravity."
+  },
+  {
+    "title": "Preserving Civic Trails",
+    "description": "Logs maintain historical visibility of issues, cultural signals, and civic actions. Any future structure or federation can draw upon these trails for context or coordination."
+  },
+  {
+    "title": "Optional Integration",
+    "description": "Nodes may choose to include EI signature verification, cryptographic timestamps, or mirrored references. These are optional enhancements, not mandatory rules."
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "category": "Civic & Local",
+    "prompts": [
+      "What is happening in my town that is unrecorded or mis-recorded by official channels?",
+      "If my city council ignored me, how can I mirror my comment here?",
+      "What local silence is a global pattern in miniature?"
+    ]
+  },
+  {
+    "category": "Cultural & Identity",
+    "prompts": [
+      "Which song, film, or meme reflects a civic distortion no one is talking about?",
+      "How has my culture been reshaped by forces no one elected?",
+      "What demographic or cultural shift is visible in my neighborhood, but absent in the news?"
+    ]
+  },
+  {
+    "category": "Institutional & Global",
+    "prompts": [
+      "What government inaction in my region echoes failures elsewhere?",
+      "What intervention do we demand abroad but never apply at home?",
+      "What would binational governance look like if designed locally?"
+    ]
+  },
+  {
+    "category": "Personal & Reflective",
+    "prompts": [
+      "What did I witness that I don’t want erased?",
+      "How does my story connect to others’ silence?",
+      "If this becomes part of the civic record forever, how do I want it framed?"
+    ]
+  }
+]

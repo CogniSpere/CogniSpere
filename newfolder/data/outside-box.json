@@ -1,0 +1,26 @@
+[
+  {
+    "scenario": "Cross-Border Coordination",
+    "description": "Simulate or log collaboration between two towns, cities, or regions in different countries to explore civic patterns and shared challenges."
+  },
+  {
+    "scenario": "University Archive Node",
+    "description": "A student group logs institutional gaps, research insights, or civic commentary into a WCO node, preserving continuity and visibility."
+  },
+  {
+    "scenario": "Silent Observation Week",
+    "description": "Participants collectively observe and record local civic patterns without engaging publicly, emphasizing presence and pattern recognition."
+  },
+  {
+    "scenario": "Cultural Resonance Mapping",
+    "description": "Track how a local cultural event, meme, or media output resonates across nodes, documenting civic signals over time."
+  },
+  {
+    "scenario": "Node-as-Art Installation",
+    "description": "Create a physical or digital art piece that doubles as a WCO node, embedding civic observations, reflections, or prompts."
+  },
+  {
+    "scenario": "Community Pulse Simulation",
+    "description": "Gather diverse neighborhood voices on a civic issue, then mirror and map responses to identify trends and anomalies across nodes."
+  }
+]
