@@ -1,0 +1,408 @@
+/**
+ * narrativeEngine.js - Ultra-Enhanced Narrative/Progression Engine (Grok + Copilot)
+ * Features:
+ * - Chapter/arc dependencies (with circular dependency detection)
+ * - Condition/completion validation (with custom validator)
+ * - Global hooks (before/after/error, unregisterable)
+ * - Performance monitoring (per operation, batch)
+ * - Batch tracking (async, concurrency)
+ * - Structured error events (for integrations)
+ * - Progress reset (full, partial, per chapter/arc)
+ * - Introspection (list/filter chapters/arcs, dependencies, tags)
+ * - History: filterable, capped, error, predicate, time
+ * - Debug/trace logging
+ * - Maintains all previous features
+ */
+
+/**
+ * @typedef {Object} NarrativeOptions
+ * @property {string[]} [dependencies]
+ * @property {Function} [validator]
+ * @property {string} [ariaLabel]
+ * @property {string[]} [tags]
+ * @property {string} [description]
+ */
+
+/**
+ * @typedef {Object} HistoryEntry
+ * @property {'chapter'|'arc'} type
+ * @property {string} name
+ * @property {Object} payload
+ * @property {number} time
+ * @property {NarrativeError} [error]
+ * @property {{duration: number}} [performance]
+ * @property {string[]} [tags]
+ */
+
+/**
+ * @typedef {Object} NarrativeError
+ * @property {string} message
+ * @property {string} code
+ * @property {any} [details]
+ * @property {string} [type]
+ * @property {string} [name]
+ */
+
+const NarrativeEngine = (() => {
+  const chapters = new Map();
+  const arcs = new Map();
+  const hooks = new Map();
+  const globalHooks = { before: [], after: [], error: [] };
+  const progressHistory = [];
+  let debug = false;
+  let maxHistoryLength = 300;
+
+  // Debug logger
+  const log = (...args) => { if (debug) console.log('[NarrativeEngine]', ...args); };
+  const trace = (...args) => { if (debug) console.trace('[NarrativeEngine]', ...args); };
+
+  // Structured error
+  function createError(message, code, details = {}) {
+    const error = new Error(message);
+    error.code = code;
+    error.details = details;
+    return error;
+  }
+
+  // Validate dependency graph
+  function validateDependencyGraph() {
+    function visit(type, name, visited, recStack) {
+      const registry = type === 'chapter' ? chapters : arcs;
+      if (!registry.has(name)) return false;
+      if (recStack.has(`${type}:${name}`)) return true;
+      if (visited.has(`${type}:${name}`)) return false;
+      visited.add(`${type}:${name}`);
+      recStack.add(`${type}:${name}`);
+
+      const opts = registry.get(name).options || {};
+      if (opts.dependencies) {
+        for (const dep of opts.dependencies) {
+          const [depType, depName] = dep.split(':');
+          if (visit(depType, depName, visited, recStack)) return true;
+        }
+      }
+      recStack.delete(`${type}:${name}`);
+      return false;
+    }
+
+    for (const [name] of chapters.entries()) {
+      if (visit('chapter', name, new Set(), new Set()))
+        throw createError(`Circular chapter dependency detected for ${name}`, 'CIRCULAR_DEP');
+    }
+    for (const [name] of arcs.entries()) {
+      if (visit('arc', name, new Set(), new Set()))
+        throw createError(`Circular arc dependency detected for ${name}`, 'CIRCULAR_DEP');
+    }
+    return true;
+  }
+
+  // Validate custom condition
+  async function validateCondition(name, type, condition, payload) {
+    const meta = type === 'chapter' ? chapters.get(name) : arcs.get(name);
+    if (meta?.options?.validator) {
+      const valid = await meta.options.validator(payload).catch(e => {
+        throw createError(`Validator failed for ${type} ${name}`, 'VALIDATOR_ERROR', { error: e });
+      });
+      if (!valid) throw createError(`Invalid ${type} condition for ${name}`, 'INVALID_CONDITION', { payload });
+    }
+    return true;
+  }
+
+  // Check static dependencies before triggering logic
+  function checkDependencies(name, type, options) {
+    if (!options?.dependencies) return;
+    for (const dep of options.dependencies) {
+      const [depType, depName] = dep.split(':');
+      const registry = depType === 'chapter' ? chapters : arcs;
+      const depMeta = registry.get(depName);
+      if (!depMeta || !(depMeta.entered || depMeta.completed)) {
+        throw createError(`Missing dependency ${dep} for ${type} ${name}`, 'MISSING_DEPENDENCY', { type, name, dep });
+      }
+    }
+  }
+
+  // Register functions
+  function registerChapter(name, condition, options = {}, meta = {}) {
+    if (typeof name !== 'string' || !name) throw createError('Chapter name must be non-empty string', 'INVALID_NAME');
+    if (typeof condition !== 'function') throw createError('Chapter condition must be a function', 'INVALID_CONDITION');
+    if (chapters.has(name)) log(`Overwriting chapter: ${name}`);
+    chapters.set(name, { condition, entered: false, options, registered: Date.now(), meta });
+    validateDependencyGraph();
+    log('Registered chapter:', name, options, meta);
+  }
+
+  function registerArc(name, completion, options = {}, meta = {}) {
+    if (typeof name !== 'string' || !name) throw createError('Arc name must be non-empty string', 'INVALID_NAME');
+    if (typeof completion !== 'function') throw createError('Arc completion must be a function', 'INVALID_COMPLETION');
+    if (arcs.has(name)) log(`Overwriting arc: ${name}`);
+    arcs.set(name, { completion, completed: false, options, registered: Date.now(), meta });
+    validateDependencyGraph();
+    log('Registered arc:', name, options, meta);
+  }
+
+  // Hook system
+  function addHook(type, name, phase, callback) {
+    const key = `${type}:${name}`;
+    if (!hooks.has(key)) hooks.set(key, { before: [], after: [], error: [] });
+    hooks.get(key)[phase].push(callback);
+    return () => { hooks.get(key)[phase] = hooks.get(key)[phase].filter(cb => cb !== callback); };
+  }
+
+  function addGlobalHook(phase, callback) {
+    if (globalHooks[phase]) globalHooks[phase].push(callback);
+    return () => { globalHooks[phase] = globalHooks[phase].filter(cb => cb !== callback); };
+  }
+
+  async function fireHooks(type, name, phase, payload) {
+    for (const cb of globalHooks[phase]) {
+      try { await cb({ type, name, payload }); } catch (e) { log(`Global ${phase} hook error`, e); }
+    }
+    const key = `${type}:${name}`;
+    if (hooks.has(key)) {
+      for (const cb of hooks.get(key)[phase] || []) {
+        try { await cb(payload); } catch (e) { log(`Hook error for ${type} ${name} (${phase})`, e); }
+      }
+    }
+  }
+
+  // Event dispatcher (DOM-safe)
+  function dispatchEventSafe(type, detail) {
+    if (typeof document !== 'undefined' && document.dispatchEvent) {
+      document.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
+    }
+    log('Event:', type, detail);
+  }
+
+  // Core tracking logic
+  async function track(payload = {}) {
+    const startTime = performance.now();
+    const results = { chapters: [], arcs: [] };
+
+    // Chapters
+    for (const [name, chapter] of chapters.entries()) {
+      if (!chapter.entered) {
+        try {
+          await validateCondition(name, 'chapter', chapter.condition, payload);
+          const shouldEnter = await chapter.condition(payload);
+          if (shouldEnter) {
+            checkDependencies(name, 'chapter', chapter.options);
+            await fireHooks('chapter', name, 'before', { name, payload });
+            if (chapter.options.ariaLabel) document.body?.setAttribute?.('aria-label', chapter.options.ariaLabel);
+            chapter.entered = true;
+            dispatchEventSafe('narrative:chapter:enter', { name, payload });
+            await fireHooks('chapter', name, 'after', { name, payload });
+            log(`Chapter entered: ${name}`);
+            progressHistory.push({
+              type: 'chapter',
+              name,
+              payload,
+              time: Date.now(),
+              error: null,
+              performance: { duration: performance.now() - startTime },
+              tags: chapter.options.tags || chapter.meta?.tags || []
+            });
+            if (chapter.options.ariaLabel) document.body?.removeAttribute?.('aria-label');
+            results.chapters.push(name);
+          }
+        } catch (e) {
+          const error = createError(`Error entering chapter ${name}`, 'CHAPTER_ERROR', { error: e });
+          await fireHooks('chapter', name, 'error', { name, payload, error });
+          for (const cb of globalHooks.error) try { await cb({ type: 'chapter', name, error }); } catch {}
+          dispatchEventSafe('narrative:error', { type: 'chapter', name, error });
+          progressHistory.push({
+            type: 'chapter',
+            name,
+            payload,
+            time: Date.now(),
+            error,
+            performance: { duration: performance.now() - startTime },
+            tags: chapter.options.tags || chapter.meta?.tags || []
+          });
+        }
+      }
+    }
+
+    // Arcs
+    for (const [name, arc] of arcs.entries()) {
+      if (!arc.completed) {
+        try {
+          await validateCondition(name, 'arc', arc.completion, payload);
+          const shouldComplete = await arc.completion(payload);
+          if (shouldComplete) {
+            checkDependencies(name, 'arc', arc.options);
+            await fireHooks('arc', name, 'before', { name, payload });
+            if (arc.options.ariaLabel) document.body?.setAttribute?.('aria-label', arc.options.ariaLabel);
+            arc.completed = true;
+            dispatchEventSafe('narrative:arc:complete', { name, payload });
+            await fireHooks('arc', name, 'after', { name, payload });
+            log(`Arc completed: ${name}`);
+            progressHistory.push({
+              type: 'arc',
+              name,
+              payload,
+              time: Date.now(),
+              error: null,
+              performance: { duration: performance.now() - startTime },
+              tags: arc.options.tags || arc.meta?.tags || []
+            });
+            if (arc.options.ariaLabel) document.body?.removeAttribute?.('aria-label');
+            results.arcs.push(name);
+          }
+        } catch (e) {
+          const error = createError(`Error completing arc ${name}`, 'ARC_ERROR', { error: e });
+          await fireHooks('arc', name, 'error', { name, payload, error });
+          for (const cb of globalHooks.error) try { await cb({ type: 'arc', name, error }); } catch {}
+          dispatchEventSafe('narrative:error', { type: 'arc', name, error });
+          progressHistory.push({
+            type: 'arc',
+            name,
+            payload,
+            time: Date.now(),
+            error,
+            performance: { duration: performance.now() - startTime },
+            tags: arc.options.tags || arc.meta?.tags || []
+          });
+        }
+      }
+    }
+
+    while (progressHistory.length > maxHistoryLength) progressHistory.shift();
+    return results;
+  }
+
+  // Batch track with concurrency control
+  async function batchTrack(payloads, { concurrency = 5 } = {}) {
+    const startTime = performance.now();
+    const results = [];
+    let idx = 0, active = 0;
+    const queue = new Set();
+
+    async function run(payload) {
+      active++;
+      try {
+        results.push(await track(payload));
+      } catch (e) {
+        results.push({ error: e });
+      } finally {
+        active--;
+        queue.delete(run);
+      }
+    }
+
+    while (idx < payloads.length) {
+      while (active < concurrency && idx < payloads.length) {
+        const payload = payloads[idx++];
+        const task = run(payload);
+        queue.add(task);
+        task.finally(() => queue.delete(task));
+      }
+      if (queue.size > 0) await Promise.race(queue);
+    }
+
+    await Promise.all(queue);
+    dispatchEventSafe('narrative:batchTracked', { count: payloads.length, duration: performance.now() - startTime });
+    log('Batch track completed', { count: payloads.length, duration: performance.now() - startTime });
+    return results;
+  }
+
+  // Reset progress
+  function resetProgress(type, name) {
+    if (!type) {
+      chapters.forEach(ch => ch.entered = false);
+      arcs.forEach(ar => ar.completed = false);
+      log('All progress reset');
+    } else if (type === 'chapter' && name && chapters.has(name)) {
+      chapters.get(name).entered = false;
+      log(`Chapter reset: ${name}`);
+    } else if (type === 'arc' && name && arcs.has(name)) {
+      arcs.get(name).completed = false;
+      log(`Arc reset: ${name}`);
+    } else {
+      throw createError('Invalid reset parameters', 'INVALID_RESET', { type, name });
+    }
+  }
+
+  // History access
+  function getHistory(filter = {}) {
+    let result = [...progressHistory];
+    if (filter.type) result = result.filter(e => e.type === filter.type);
+    if (filter.name) result = result.filter(e => e.name === filter.name);
+    if (filter.maxAge) result = result.filter(e => e.time >= Date.now() - filter.maxAge);
+    if (filter.errorOnly) result = result.filter(e => !!e.error);
+    if (filter.tag) result = result.filter(e => e.tags?.includes(filter.tag));
+    if (filter.predicate) result = result.filter(filter.predicate);
+    return result;
+  }
+
+  function clearHistory() { progressHistory.length = 0; log('Progress history cleared'); }
+
+  function setHistoryCap(cap) {
+    maxHistoryLength = Math.max(0, cap);
+    while (progressHistory.length > maxHistoryLength) progressHistory.shift();
+    log('History cap set:', maxHistoryLength);
+  }
+
+  // Debug toggle
+  const setDebug = val => { debug = !!val; };
+
+  // Introspection
+  const getChapters = () => Object.fromEntries(chapters);
+  const getArcs = () => Object.fromEntries(arcs);
+  const listChapters = () => Array.from(chapters.keys());
+  const listArcs = () => Array.from(arcs.keys());
+  const filterChaptersByTag = tag => [...chapters.entries()].filter(([, m]) => m.options.tags?.includes(tag)).map(([n]) => n);
+  const filterArcsByTag = tag => [...arcs.entries()].filter(([, m]) => m.options.tags?.includes(tag)).map(([n]) => n);
+  const validateAllChapters = () => [...chapters.entries()].map(([n, m]) => ({ name: n, valid: !m.options.validator || m.options.validator(n) }));
+  const validateAllArcs = () => [...arcs.entries()].map(([n, m]) => ({ name: n, valid: !m.options.validator || m.options.validator(n) }));
+
+  // Initialization
+  function init() {
+    registerChapter('intro', p => p.event === 'page_load', {
+      ariaLabel: 'Introduction chapter',
+      dependencies: [],
+      tags: ['default'],
+      description: 'Intro to experience.'
+    });
+    registerArc('exploration', p => p.scrollDepth > 50, {
+      ariaLabel: 'Exploration arc',
+      dependencies: ['chapter:intro'],
+      tags: ['default'],
+      description: 'Exploration phase.'
+    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('load', () => track({ event: 'page_load' }));
+      window.addEventListener('scroll', () => track({ scrollDepth: (window.scrollY / document.body.scrollHeight) * 100 }));
+    }
+    log('NarrativeEngine initialized');
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  return {
+    registerChapter,
+    registerArc,
+    addHook,
+    addGlobalHook,
+    track,
+    batchTrack,
+    resetProgress,
+    getChapters,
+    getArcs,
+    listChapters,
+    listArcs,
+    filterChaptersByTag,
+    filterArcsByTag,
+    validateAllChapters,
+    validateAllArcs,
+    getHistory,
+    clearHistory,
+    setDebug,
+    setHistoryCap
+  };
+})();
+
+export default NarrativeEngine;
