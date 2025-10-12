@@ -1,0 +1,6 @@
+[
+  { "title": "Welcome", "file": "page1.html" },
+  { "title": "Page 2", "file": "page2.html" },
+  ...
+  { "title": "Page Fifteen Will Be Televised", "file": "page15.html" }
+]
