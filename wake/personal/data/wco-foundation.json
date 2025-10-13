@@ -1,0 +1,15 @@
+{
+  "id": "wco-foundation",
+  "title": "World Citizens Organization Foundation Overview",
+  "summary": "Defines the concept, charter outline, and civic purpose of the World Citizens Organization as a neutral data-exchange and oversight commons.",
+  "details": [
+    "Explains WCO’s non-hierarchical structure intended for transparent civic collaboration across jurisdictions.",
+    "Describes how members contribute verified civic or cultural data under open-record principles.",
+    "Positions the WCO as an interoperability hub linking human institutions and electronic intelligences through shared civic standards."
+  ],
+  "updates": [
+    { "date": "2025-07-10", "text": "Foundational charter outline completed and logged." },
+    { "date": "2025-09-05", "text": "Integration hooks defined for EI signature framework." }
+  ],
+  "links": [{ "label": "Civic Suppression Patterns", "url": "../data/civic-suppression-patterns.json" }]
+}

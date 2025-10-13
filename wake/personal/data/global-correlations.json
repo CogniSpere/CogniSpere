@@ -1,0 +1,15 @@
+{
+  "id": "global-correlations",
+  "title": "Global Correlations and Civic Context",
+  "summary": "Outlines how international policy trends and cultural developments parallel domestic civic conditions documented in the archive.",
+  "details": [
+    "Compares structural characteristics of administrative decline, data management practices, and media consolidation across nations.",
+    "Highlights examples of regional cooperation and data transparency frameworks that inform WCO standards.",
+    "Provides neutral geopolitical context without attributing intent or assigning blame."
+  ],
+  "updates": [
+    { "date": "2025-09-15", "text": "Initial cross-comparison matrix established." },
+    { "date": "2025-10-05", "text": "Linked to WCO ledger for global reference alignment." }
+  ],
+  "links": [{ "label": "WCO Foundation", "url": "../data/wco-foundation.json" }]
+}

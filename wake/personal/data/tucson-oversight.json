@@ -1,0 +1,15 @@
+{
+  "id": "tucson-oversight",
+  "title": "Tucson Oversight and Records Integration",
+  "summary": "Captures Tucson-area civic correspondence concerning record management, oversight procedure, and data forwarding to national review.",
+  "details": [
+    "Outlines communication attempts with Tucson administrative offices and oversight divisions.",
+    "Includes confirmation of record receipt but absence of substantive feedback, highlighting procedural bottlenecks.",
+    "Serves as a control dataset comparing border-state responsiveness to California municipal patterns."
+  ],
+  "updates": [
+    { "date": "2025-08-12", "text": "Initial Tucson entries logged for WCO integration." },
+    { "date": "2025-09-30", "text": "Review scheduled for inclusion in binational ledger summary." }
+  ],
+  "links": [{ "label": "Border Network", "url": "../data/border-network.json" }]
+}

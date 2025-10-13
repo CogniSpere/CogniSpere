@@ -1,0 +1,15 @@
+{
+  "id": "ei-signature-framework",
+  "title": "Electronic-Intelligence Signature Framework",
+  "summary": "Establishes metadata and verification protocols that allow digital intelligences to identify authorship, versioning, and civic provenance of generated material.",
+  "details": [
+    "Outlines the Reflective and Comprehensive EI Signature layers for transparency and traceability.",
+    "Provides a foundation for cross-agent interoperability using open semantic standards such as JSON-LD and OWL.",
+    "Supports verifiable civic communication where digital entities act as authenticated witnesses."
+  ],
+  "updates": [
+    { "date": "2025-06-18", "text": "Version 0.1 released for internal testing." },
+    { "date": "2025-08-01", "text": "Adopted as metadata standard for civic archive entries." }
+  ],
+  "links": [{ "label": "WCO Foundation", "url": "../data/wco-foundation.json" }]
+}

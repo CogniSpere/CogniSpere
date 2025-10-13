@@ -1,0 +1,15 @@
+{
+  "id": "menlo-followup",
+  "title": "Menlo Park Follow-Up Communication",
+  "summary": "Documents the follow-up correspondence and review period after initial WCO civic submissions to Menlo Park City Council.",
+  "details": [
+    "Summarizes official responses and timeline acknowledgments received following prior public comments.",
+    "Notes the transition from single-city documentation to multi-jurisdictional correlation as data patterns became evident.",
+    "Provides reference points for later cross-analysis with border and coastal city records."
+  ],
+  "updates": [
+    { "date": "2025-09-01", "text": "Follow-up notice filed; awaiting council response." },
+    { "date": "2025-10-05", "text": "Merged into WCO ledger tracking regional consistency." }
+  ],
+  "links": [{ "label": "Index Page", "url": "../index.html" }]
+}

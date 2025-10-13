@@ -1,0 +1,14 @@
+{
+  "id": "media-influence-overview",
+  "title": "Media Influence and Information Flow Overview",
+  "summary": "Summarizes observations of how mainstream and digital media ecosystems shape or filter civic information circulation.",
+  "details": [
+    "Analyzes structural incentives in journalism and platform algorithms that lead to under-coverage of civic anomalies.",
+    "Describes the feedback loop where information overload results in reduced discernment and institutional accountability.",
+    "Identifies the need for independent data mirroring to ensure persistence of verifiable civic records."
+  ],
+  "updates": [
+    { "date": "2025-10-05", "text": "Baseline file created as reference for comparative studies on communication flow." }
+  ],
+  "links": [{ "label": "Civic Suppression Patterns", "url": "../data/civic-suppression-patterns.json" }]
+}
