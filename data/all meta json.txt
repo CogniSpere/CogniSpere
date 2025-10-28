@@ -1,0 +1,1340 @@
+{
+  "name": "DOM3DManager",
+  "description": "Manages DOM elements anchored to 3D objects in a Three.js scene with raycasting, pointer events, visibility culling, and transaction support.",
+  "params": {
+    "constructor": {
+      "scene": "THREE.Scene",
+      "camera": "THREE.Camera",
+      "renderer": "THREE.WebGLRenderer",
+      "domRoot": "HTMLElement (optional)",
+      "autoUpdate": "boolean (optional)",
+      "defaults": "object (optional)",
+      "debounceMs": "number (optional)"
+    },
+    "attach": {
+      "domEl": "HTMLElement",
+      "object3D": "THREE.Object3D",
+      "options": "object (optional)"
+    },
+    "detach": {
+      "domEl": "HTMLElement"
+    },
+    "setAnchorOptions": {
+      "domEl": "HTMLElement",
+      "updates": "object (optional)"
+    },
+    "update": {
+      "dt": "number (optional)"
+    },
+    "start": {},
+    "stop": {},
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "publishMeta": {
+      "topic": "string",
+      "payload": "any"
+    },
+    "onMeta": {
+      "topic": "string",
+      "cb": "function"
+    },
+    "readMeta": {
+      "topic": "string"
+    },
+    "attachSymbolAPI": {
+      "api": "object"
+    },
+    "attachMemoryAPI": {
+      "api": "object"
+    },
+    "attachGestureAPI": {
+      "api": "object"
+    },
+    "attachStateAPI": {
+      "api": "object"
+    },
+    "attachNarrativeAPI": {
+      "api": "object"
+    },
+    "attachHookAPI": {
+      "api": "object"
+    }
+  },
+  "events": [
+    "3d-pointerdown",
+    "3d-pointermove",
+    "3d-pointerup",
+    "3d-click",
+    "3d-hover",
+    "3d-blur"
+  ]
+}
+{
+  "name": "ArchetypeEngine",
+  "description": "Adaptive archetype management with behaviors, dependencies, transactions, performance metrics, undo/redo, synergy hooks, and AI-driven adaptations.",
+  "params": {
+    "register": {
+      "name": "string",
+      "behaviors": "object (optional)",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "batchRegister": {
+      "archetypes": "array"
+    },
+    "unregister": {
+      "name": "string"
+    },
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "setActive": {
+      "name": "string",
+      "state": "boolean"
+    },
+    "toggleAllActive": {
+      "state": "boolean"
+    },
+    "hybrid": {
+      "archetypes": "array",
+      "name": "string",
+      "behaviors": "object (optional)",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "addSynergyHook": {
+      "cb": "function"
+    },
+    "applySynergy": {
+      "context": "object (optional)"
+    },
+    "addHook": {
+      "name": "string",
+      "phase": "string",
+      "cb": "function"
+    },
+    "addGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "removeGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "listGlobalHooks": {
+      "phase": "string (optional)"
+    },
+    "addMetaHook": {
+      "name": "string",
+      "cb": "function"
+    },
+    "addGlobalMetaHook": {
+      "cb": "function"
+    },
+    "fireMetaHooks": {
+      "context": "object (optional)"
+    },
+    "adapt": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "metaInteract": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "influence": {
+      "name": "string",
+      "influenceFn": "function",
+      "context": "object (optional)"
+    },
+    "batchInfluence": {
+      "names": "array",
+      "influenceFn": "function",
+      "context": "object (optional)"
+    },
+    "batchValidate": {
+      "names": "array"
+    },
+    "validate": {
+      "name": "string"
+    },
+    "match": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "checkCondition": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "setValidator": {
+      "name": "string",
+      "validator": "function"
+    },
+    "setCondition": {
+      "name": "string",
+      "condition": "function"
+    },
+    "setAria": {
+      "name": "string",
+      "label": "string"
+    },
+    "setRole": {
+      "name": "string",
+      "role": "string"
+    },
+    "focus": {
+      "name": "string"
+    },
+    "dispatchEvent": {
+      "name": "string",
+      "eventName": "string",
+      "detail": "object (optional)"
+    },
+    "getRegistry": {},
+    "listArchetypes": {},
+    "filterByTag": {
+      "tag": "string"
+    },
+    "filterByRole": {
+      "role": "string"
+    },
+    "getDependencies": {
+      "name": "string"
+    },
+    "getMeta": {
+      "name": "string"
+    },
+    "getOptions": {
+      "name": "string"
+    },
+    "getBehaviors": {
+      "name": "string"
+    },
+    "getActive": {
+      "name": "string"
+    },
+    "getVersion": {
+      "name": "string"
+    },
+    "validateAll": {},
+    "getPerformanceMetrics": {
+      "name": "string"
+    },
+    "getAllArchetypeMetrics": {},
+    "getHistory": {
+      "filter": "object (optional)"
+    },
+    "clearHistory": {},
+    "setHistoryCap": {
+      "cap": "number"
+    },
+    "snapshot": {},
+    "restore": {
+      "snapshots": "array"
+    },
+    "serialize": {
+      "options": "object (optional)"
+    },
+    "deserialize": {
+      "serialized": "string|object"
+    },
+    "getIntrospection": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "setDebug": {
+      "val": "boolean"
+    }
+  },
+  "events": []
+}
+{
+"name": "DomEngine",
+"description": "Enhanced DOM manipulation engine with registry, hooks, transactions, mutation observation, narrative tracking, synergy integration, and renderer bridge.",
+"params": {
+"register": {
+"id": "string",
+"element": "HTMLElement",
+"tags": "array|string (optional)",
+"meta": "object (optional)"
+},
+"unregister": {
+"id": "string"
+},
+"beginTransaction": {},
+"commitTransaction": {},
+"rollbackTransaction": {},
+"addHook": {
+"id": "string",
+"phase": "string",
+"cb": "function"
+},
+"addGlobalHook": {
+"phase": "string",
+"cb": "function"
+},
+"batchCreate": {
+"specs": "array"
+},
+"batchUpdate": {
+"updates": "array"
+},
+"batchRemove": {
+"ids": "array"
+},
+"animate": {
+"id": "string",
+"keyframes": "array",
+"options": "object (optional)"
+},
+"getParent": {
+"id": "string"
+},
+"getChildren": {
+"id": "string"
+},
+"getSiblings": {
+"id": "string"
+},
+"queryElements": {
+"predicate": "function"
+},
+"queryElementsByAttributes": {
+"attrs": "object"
+},
+"getElement": {
+"id": "string"
+},
+"listElements": {},
+"findByTag": {
+"tag": "string"
+},
+"getRegistry": {},
+"getAttributes": {
+"id": "string"
+},
+"getClasses": {
+"id": "string"
+},
+"getStyles": {
+"id": "string"
+},
+"setAria": {
+"id": "string",
+"prop": "string",
+"value": "string"
+},
+"setRole": {
+"id": "string",
+"role": "string"
+},
+"focus": {
+"id": "string"
+},
+"dispatchEvent": {
+"id": "string",
+"eventName": "string",
+"detail": "object (optional)"
+},
+"delegate": {
+"selector": "string",
+"eventName": "string",
+"cb": "function"
+},
+"observeMutations": {},
+"addMutationHook": {
+"cb": "function"
+},
+"stopObservingMutations": {},
+"getMutationHistory": {},
+"setMutationHistoryCap": {
+"cap": "number"
+},
+"snapshot": {
+"options": "object (optional)"
+},
+"restore": {
+"snapshots": "array"
+},
+"serialize": {
+"options": "object (optional)"
+},
+"deserialize": {
+"serialized": "string|object",
+"options": "object (optional)"
+},
+"undo": {},
+"redo": {},
+"getHistory": {
+"filter": "object (optional)"
+},
+"clearHistory": {},
+"setHistoryCap": {
+"cap": "number"
+},
+"getPerformanceMetrics": {
+"id": "string"
+},
+"setDebug": {
+"val": "boolean"
+},
+"registerSynergy": {
+"s": "object"
+},
+"setMetaContext": {
+"ctx": "object"
+},
+"registerRenderer": {
+"r": "object"
+},
+"requestRender": {
+"id": "string"
+},
+"renderAll": {},
+"startChapter": {
+"name": "string",
+"meta": "object (optional)"
+},
+"endChapter": {},
+"getChapters": {},
+"getProgress": {},
+"computeLayout": {
+"id": "string"
+},
+"computeLayoutAll": {}
+},
+"events": []
+}
+{
+"name": "DOM3DToGPUBridge",
+"description": "Bridges DOM3D anchors to GPU rendering with WebGPU/WebGL/Canvas2D fallbacks, performance metrics, hooks, transactions, and synergy integration.",
+"params": {
+"constructor": {
+"dom3d": "object",
+"canvas": "HTMLCanvasElement (optional)",
+"maxAnchors": "number (optional)",
+"clearColor": "array (optional)",
+"customShaders": "object (optional)"
+},
+"start": {},
+"stop": {},
+"on": {
+"event": "string",
+"cb": "function"
+},
+"off": {
+"event": "string",
+"cb": "function"
+},
+"addHook": {
+"event": "string",
+"cb": "function"
+},
+"registerSynergy": {
+"s": "object"
+},
+"setMetaContext": {
+"ctx": "object (optional)"
+},
+"setRenderCondition": {
+"fn": "function"
+},
+"setAnchorFilter": {
+"fn": "function"
+},
+"beginTransaction": {
+"label": "string (optional)"
+},
+"commitTransaction": {},
+"rollbackTransaction": {},
+"undo": {
+"steps": "number (optional)"
+},
+"redo": {
+"steps": "number (optional)"
+},
+"getHistory": {
+"filter": "object (optional)"
+},
+"clearHistory": {},
+"setHistoryCap": {
+"cap": "number"
+},
+"getPerformanceMetrics": {},
+"dispose": {}
+},
+"events": [
+"render",
+"error",
+"frame",
+"dispose"
+]
+}
+{
+  "name": "EventEngine",
+  "description": "Manages event listeners with priorities, archetypes, global hooks, transactions, and adapters for state, hook, and layout integration.",
+  "params": {
+    "on": {
+      "eventType": "string",
+      "cb": "function",
+      "options": "object (optional)"
+    },
+    "off": {
+      "eventType": "string",
+      "cbOrId": "function|string (optional)"
+    },
+    "once": {
+      "eventType": "string",
+      "cb": "function",
+      "options": "object (optional)"
+    },
+    "emit": {
+      "eventType": "string",
+      "payload": "any (optional)"
+    },
+    "emitAsync": {
+      "eventType": "string",
+      "payload": "any (optional)",
+      "concurrency": "number (optional)"
+    },
+    "addGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "registerArchetype": {
+      "name": "string",
+      "options": "object (optional)"
+    },
+    "unregisterArchetype": {
+      "name": "string"
+    },
+    "setArchetypeActive": {
+      "name": "string",
+      "state": "boolean (optional)"
+    },
+    "attachStateAPI": {
+      "api": "object"
+    },
+    "attachHookAPI": {
+      "api": "object"
+    },
+    "attachLayoutAPI": {
+      "api": "object"
+    },
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "serializeListeners": {},
+    "deserializeListeners": {
+      "serialized": "string|object",
+      "callbackResolver": "function (optional)"
+    },
+    "addDOMDelegate": {
+      "selector": "string",
+      "eventName": "string",
+      "hookName": "string"
+    },
+    "getHistory": {
+      "filter": "object (optional)"
+    },
+    "clearHistory": {},
+    "setHistoryCap": {
+      "cap": "number"
+    },
+    "getMetrics": {
+      "eventType": "string (optional)"
+    },
+    "listListeners": {
+      "ev": "string (optional)"
+    },
+    "setDebug": {
+      "v": "boolean (optional)"
+    }
+  },
+  "events": []
+}
+{
+"name": "GestureEngine",
+"description": "Manages gesture detection with type-specific detectors, hooks, anchors, transactions, and adapters for symbol, state, and DOM3D integration.",
+"params": {
+"register": {
+"typeName": "string",
+"detector": "function",
+"options": "object (optional)",
+"meta": "object (optional)"
+},
+"unregister": {
+"typeName": "string"
+},
+"setGestureActive": {
+"typeName": "string",
+"state": "boolean (optional)"
+},
+"addHook": {
+"typeName": "string",
+"phase": "string",
+"cb": "function"
+},
+"addGlobalHook": {
+"phase": "string",
+"cb": "function"
+},
+"batchUnregister": {
+"fn": "function"
+},
+"attachDetect": {
+"element": "HTMLElement"
+},
+"batchDetect": {
+"elements": "array",
+"concurrency": "number (optional)"
+},
+"getRegistry": {},
+"listGestures": {},
+"filterGesturesByTag": {
+"tag": "string"
+},
+"validateAllGestures": {},
+"getHistory": {
+"filter": "object (optional)"
+},
+"clearHistory": {},
+"setHistoryCap": {
+"cap": "number"
+},
+"attachSymbolAPI": {
+"api": "object"
+},
+"attachStateAPI": {
+"api": "object"
+},
+"attachDOM3D": {
+"api": "object"
+},
+"publishMeta": {
+"topic": "string",
+"payload": "any"
+},
+"onMeta": {
+"topic": "string",
+"cb": "function"
+},
+"readMeta": {
+"topic": "string"
+},
+"registerAnchor": {
+"element": "HTMLElement",
+"type": "string",
+"opts": "object (optional)"
+},
+"removeAnchor": {
+"element": "HTMLElement"
+},
+"listAnchors": {},
+"beginTransaction": {
+"label": "string (optional)"
+},
+"commitTransaction": {},
+"rollbackTransaction": {},
+"undo": {
+"steps": "number (optional)"
+},
+"redo": {
+"steps": "number (optional)"
+}
+},
+"events": [
+"gesture:<type>",
+"gesture:error"
+]
+}
+{
+"name": "HookEngine",
+"description": "Manages hook registrations with priorities, global hooks, transactions, adapters for state, DOM, narrative, layout, and symbol, and meta-context for synergy.",
+"params": {
+"register": {
+"hookName": "string",
+"callback": "function",
+"options": "object (optional)"
+},
+"deregister": {
+"hookName": "string",
+"callback": "function (optional)"
+},
+"batchDeregister": {
+"hookNames": "array"
+},
+"addGlobalHook": {
+"phase": "string",
+"cb": "function"
+},
+"trigger": {
+"hookName": "string",
+"payload": "object (optional)"
+},
+"batchTrigger": {
+"triggers": "array",
+"options": "object (optional)"
+},
+"addDOMDelegate": {
+"selector": "string",
+"eventName": "string",
+"hookName": "string"
+},
+"attachStateAPI": {
+"api": "object"
+},
+"attachNarrativeAPI": {
+"api": "object"
+},
+"attachLayoutAPI": {
+"api": "object"
+},
+"attachSymbolAPI": {
+"api": "object"
+},
+"publishMeta": {
+"topic": "string",
+"payload": "any"
+},
+"onMeta": {
+"topic": "string",
+"cb": "function"
+},
+"readMeta": {
+"topic": "string"
+},
+"beginTransaction": {
+"label": "string (optional)"
+},
+"commitTransaction": {},
+"rollbackTransaction": {},
+"undo": {
+"steps": "number (optional)"
+},
+"redo": {
+"steps": "number (optional)"
+},
+"listHooks": {},
+"getHistory": {
+"filter": "object (optional)"
+},
+"clearHistory": {},
+"setHistoryCap": {
+"cap": "number"
+},
+"getMetrics": {
+"hookName": "string (optional)"
+},
+"setLogLevel": {
+"level": "string"
+},
+"cleanupExpired": {}
+},
+"events": []
+}
+{
+"name": "LayoutEngine",
+"description": "Manages layout rendering with type-specific renderers, hooks, history, undo, performance metrics, state management, storyboards, and GPU integration.",
+"params": {
+"register": {
+"type": "string",
+"renderer": "function",
+"options": "object (optional)"
+},
+"lazyRegister": {
+"type": "string",
+"loader": "function"
+},
+"unregister": {
+"type": "string"
+},
+"build": {
+"container": "HTMLElement|string",
+"type": "string",
+"items": "array",
+"context": "object (optional)",
+"mergeStrategy": "string (optional)"
+},
+"batchBuild": {
+"specs": "array",
+"options": "object (optional)"
+},
+"addGlobalHook": {
+"phase": "string",
+"cb": "function"
+},
+"addTypeHook": {
+"type": "string",
+"phase": "string",
+"cb": "function"
+},
+"undo": {
+"container": "HTMLElement"
+},
+"serialize": {
+"c": "HTMLElement"
+},
+"deserialize": {
+"c": "HTMLElement",
+"s": "string"
+},
+"getHistory": {
+"filter": "object (optional)"
+},
+"clearHistory": {},
+"setHistoryCap": {
+"cap": "number"
+},
+"getMeta": {
+"type": "string"
+},
+"getAllMeta": {},
+"getPerformanceMetrics": {},
+"stateSet": {
+"k": "string",
+"v": "any"
+},
+"stateGet": {
+"k": "string"
+},
+"stateSubscribe": {
+"k": "string",
+"cb": "function"
+},
+"publishMeta": {
+"topic": "string",
+"payload": "any"
+},
+"onMeta": {
+"topic": "string",
+"cb": "function"
+},
+"readMeta": {
+"topic": "string"
+},
+"registerStoryboard": {
+"name": "string",
+"steps": "array (optional)"
+},
+"advanceStoryboard": {
+"name": "string",
+"ctx": "object"
+},
+"resetStoryboard": {
+"name": "string"
+},
+"createGPUBridge": {
+"canvas": "HTMLCanvasElement",
+"opts": "object (optional)"
+}
+},
+"events": [
+"layout:story:step",
+"layout:error"
+]
+}
+{
+"name": "MemoryEngine",
+"description": "Manages key-value memory with persistence, hooks, subscriptions, transactions, and integrations for symbol, gesture, and narrative APIs.",
+"params": {
+"store": {
+"key": "string",
+"value": "any",
+"opts": "object (optional)"
+},
+"batchStore": {
+"entries": "array",
+"opts": "object (optional)"
+},
+"recall": {
+"key": "string",
+"restorePersisted": "boolean (optional)"
+},
+"batchRecall": {
+"keys": "array"
+},
+"influence": {
+"key": "string",
+"cb": "function"
+},
+"forget": {
+"key": "string"
+},
+"addHook": {
+"key": "string",
+"phase": "string",
+"cb": "function"
+},
+"addGlobalHook": {
+"phase": "string",
+"cb": "function"
+},
+"subscribe": {
+"key": "string",
+"cb": "function"
+},
+"bindElement": {
+"element": "Element",
+"options": "object"
+},
+"attachSymbolAPI": {
+"api": "object"
+},
+"attachGestureAPI": {
+"api": "object"
+},
+"attachNarrativeAPI": {
+"api": "object"
+},
+"publishMeta": {
+"topic": "string",
+"payload": "any"
+},
+"onMeta": {
+"topic": "string",
+"cb": "function"
+},
+"readMeta": {
+"topic": "string"
+},
+"beginTransaction": {
+"label": "string (optional)"
+},
+"commitTransaction": {},
+"rollbackTransaction": {},
+"undo": {
+"steps": "number (optional)"
+},
+"redo": {
+"steps": "number (optional)"
+},
+"getRegistry": {},
+"getHistory": {
+"filter": "object (optional)"
+},
+"clearHistory": {},
+"setHistoryCap": {
+"cap": "number"
+},
+"setStorage": {
+"useLocal": "boolean (optional)"
+},
+"setDebug": {
+"v": "boolean (optional)"
+},
+"getMetrics": {},
+"startAutoCleanup": {
+"ms": "number (optional)"
+},
+"stopAutoCleanup": {}
+},
+"events": []
+}
+{
+  "name": "NarrativeEngine",
+  "description": "Manages narrative progression with chapters, arcs, hooks, transactions, and rendering via layout, GPU, or animation adapters.",
+  "params": {
+    "registerChapter": {
+      "name": "string",
+      "condition": "function",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "unregisterChapter": {
+      "name": "string"
+    },
+    "registerArc": {
+      "name": "string",
+      "completion": "function",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "unregisterArc": {
+      "name": "string"
+    },
+    "addHook": {
+      "type": "string",
+      "name": "string",
+      "phase": "string",
+      "cb": "function"
+    },
+    "addGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "track": {
+      "payload": "object (optional)"
+    },
+    "batchTrack": {
+      "payloads": "array",
+      "options": "object (optional)"
+    },
+    "resetProgress": {
+      "type": "string (optional)",
+      "name": "string (optional)"
+    },
+    "listChapters": {},
+    "listArcs": {},
+    "getChapters": {},
+    "getArcs": {},
+    "getHistory": {
+      "filter": "object (optional)"
+    },
+    "clearHistory": {},
+    "setHistoryCap": {
+      "cap": "number"
+    },
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "attachLayoutAPI": {
+      "api": "object"
+    },
+    "attachGPUBridge": {
+      "api": "object"
+    },
+    "attachAnimator": {
+      "api": "object"
+    },
+    "publishMeta": {
+      "topic": "string",
+      "payload": "any"
+    },
+    "onMeta": {
+      "topic": "string",
+      "cb": "function"
+    },
+    "readMeta": {
+      "topic": "string"
+    },
+    "getPerformanceMetrics": {},
+    "setDebug": {
+      "v": "boolean (optional)"
+    }
+  },
+  "events": []
+}
+{
+  "name": "StateEngine",
+  "description": "Manages component-based state with DOM bindings, hooks, transactions, dependencies, and persistent storage.",
+  "params": {
+    "set": {
+      "componentId": "string",
+      "key": "string",
+      "value": "any",
+      "opts": "object (optional)"
+    },
+    "get": {
+      "componentId": "string",
+      "key": "string",
+      "options": "object (optional)"
+    },
+    "batchSet": {
+      "componentId": "string",
+      "updates": "array",
+      "options": "object (optional)"
+    },
+    "batchGet": {
+      "componentId": "string",
+      "keys": "array"
+    },
+    "remove": {
+      "componentId": "string",
+      "key": "string"
+    },
+    "subscribe": {
+      "componentId": "string",
+      "key": "string",
+      "cb": "function"
+    },
+    "addHook": {
+      "componentId": "string",
+      "key": "string",
+      "phase": "string",
+      "cb": "function"
+    },
+    "addGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "getRegistry": {},
+    "getHistory": {
+      "filter": "object (optional)"
+    },
+    "clearHistory": {},
+    "setHistoryCap": {
+      "cap": "number"
+    },
+    "getMetrics": {},
+    "setDebug": {
+      "v": "boolean (optional)"
+    },
+    "setStorageMode": {
+      "mode": "string (optional)"
+    },
+    "attachStateAPI": {
+      "api": "object"
+    },
+    "publishMeta": {
+      "topic": "string",
+      "payload": "any"
+    },
+    "onMeta": {
+      "topic": "string",
+      "cb": "function"
+    },
+    "getMeta": {
+      "topic": "string"
+    },
+    "registerDependency": {
+      "targetComponentId": "string",
+      "targetKey": "string",
+      "sources": "array",
+      "resolver": "function (optional)"
+    },
+    "listDependencies": {},
+    "bindElement": {
+      "el": "Element",
+      "options": "object"
+    },
+    "_autoBind": {
+      "root": "Element (optional)"
+    }
+  },
+  "events": []
+}
+{
+  "name": "SymbolEngine",
+  "description": "Manages pattern-based logic execution with hooks, transactions, and adapter integrations for gesture, layout, memory, narrative, and state.",
+  "params": {
+    "register": {
+      "pattern": "string",
+      "logic": "function",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "unregister": {
+      "pattern": "string"
+    },
+    "setPatternActive": {
+      "pattern": "string",
+      "state": "boolean (optional)"
+    },
+    "addHook": {
+      "pattern": "string",
+      "phase": "string",
+      "cb": "function"
+    },
+    "addGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "apply": {
+      "context": "object (optional)"
+    },
+    "batchApply": {
+      "contexts": "array",
+      "options": "object (optional)"
+    },
+    "getHistory": {
+      "filter": "object (optional)"
+    },
+    "clearHistory": {},
+    "setHistoryCap": {
+      "cap": "number"
+    },
+    "getRegistry": {},
+    "getPatterns": {},
+    "filterPatternsByTag": {
+      "tag": "string"
+    },
+    "validateAllPatterns": {},
+    "getMetrics": {
+      "patternName": "string (optional)"
+    },
+    "setDebug": {
+      "v": "boolean"
+    },
+    "adapter.attachGestureAPI": {
+      "api": "object"
+    },
+    "adapter.attachLayoutAPI": {
+      "api": "object"
+    },
+    "adapter.attachMemoryAPI": {
+      "api": "object"
+    },
+    "adapter.attachNarrativeAPI": {
+      "api": "object"
+    },
+    "adapter.attachHookAPI": {
+      "api": "object"
+    },
+    "adapter.attachStateAPI": {
+      "api": "object"
+    },
+    "publishMeta": {
+      "topic": "string",
+      "payload": "any"
+    },
+    "onMeta": {
+      "topic": "string",
+      "cb": "function"
+    },
+    "readMeta": {
+      "topic": "string"
+    },
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    }
+  },
+  "events": []
+}
+{
+  "name": "SynergyEngine",
+  "description": "Orchestrates dynamic engine interactions with link-based rules, cycle detection, concurrency control, and transaction history.",
+  "params": {
+    "registerEngine": {
+      "name": "string",
+      "api": "object (optional)"
+    },
+    "unregisterEngine": {
+      "name": "string"
+    },
+    "getEngine": {
+      "name": "string"
+    },
+    "registerLink": {
+      "source": "string",
+      "target": "string",
+      "rule": "function",
+      "options": "object (optional)"
+    },
+    "removeLink": {
+      "id": "string"
+    },
+    "updateLink": {
+      "id": "string",
+      "changes": "object (optional)"
+    },
+    "trigger": {
+      "context": "object (optional)",
+      "priority": "number (optional)",
+      "opts": "object (optional)"
+    },
+    "analyze": {
+      "scope": "string (optional)",
+      "filters": "object (optional)"
+    },
+    "analyzeAll": {},
+    "prioritize": {
+      "goalsList": "array",
+      "mode": "string (optional)"
+    },
+    "getActiveGoals": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "getHistory": {},
+    "addHook": {
+      "phase": "string",
+      "callback": "function"
+    },
+    "addEngineHook": {
+      "engineName": "string",
+      "phase": "string",
+      "callback": "function"
+    },
+    "getContextGraph": {},
+    "getPerformanceMetrics": {},
+    "setConcurrency": {
+      "n": "number"
+    },
+    "setAdaptiveConcurrency": {
+      "enabled": "boolean"
+    },
+    "setAdaptiveWeights": {
+      "enabled": "boolean"
+    },
+    "setLinkDefaults": {
+      "defaults": "object (optional)"
+    },
+    "on": {
+      "event": "string",
+      "cb": "function"
+    },
+    "off": {
+      "event": "string",
+      "cb": "function"
+    },
+    "emit": {
+      "event": "string",
+      "args": "any"
+    }
+  },
+  "events": [
+    "synergy:init",
+    "synergy:link:added",
+    "synergy:link:removed",
+    "synergy:link:updated",
+    "synergy:link:triggered",
+    "synergy:conflict",
+    "synergy:resolved",
+    "synergy:goal:updated",
+    "synergy:undo",
+    "synergy:redo"
+  ]
+}
