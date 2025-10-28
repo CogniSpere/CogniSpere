@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Engine Data</title>
+</head>
+<body>
+<pre id="engine-data">
+{
+  "name": "DOM3DManager",
+  "description": "Manages DOM elements anchored to 3D objects in a Three.js scene with raycasting, pointer events, visibility culling, and transaction support.",
+  "params": {
+    "constructor": {
+      "scene": "THREE.Scene",
+      "camera": "THREE.Camera",
+      "renderer": "THREE.WebGLRenderer",
+      "domRoot": "HTMLElement (optional)",
+      "autoUpdate": "boolean (optional)",
+      "defaults": "object (optional)",
+      "debounceMs": "number (optional)"
+    },
+    "attach": {
+      "domEl": "HTMLElement",
+      "object3D": "THREE.Object3D",
+      "options": "object (optional)"
+    },
+    "detach": {
+      "domEl": "HTMLElement"
+    },
+    "setAnchorOptions": {
+      "domEl": "HTMLElement",
+      "updates": "object (optional)"
+    },
+    "update": {
+      "dt": "number (optional)"
+    },
+    "start": {},
+    "stop": {},
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "publishMeta": {
+      "topic": "string",
+      "payload": "any"
+    },
+    "onMeta": {
+      "topic": "string",
+      "cb": "function"
+    },
+    "readMeta": {
+      "topic": "string"
+    },
+    "attachSymbolAPI": {
+      "api": "object"
+    },
+    "attachMemoryAPI": {
+      "api": "object"
+    },
+    "attachGestureAPI": {
+      "api": "object"
+    },
+    "attachStateAPI": {
+      "api": "object"
+    },
+    "attachNarrativeAPI": {
+      "api": "object"
+    },
+    "attachHookAPI": {
+      "api": "object"
+    }
+  },
+  "events": [
+    "3d-pointerdown",
+    "3d-pointermove",
+    "3d-pointerup",
+    "3d-click",
+    "3d-hover",
+    "3d-blur"
+  ]
+}
+{
+  "name": "ArchetypeEngine",
+  "description": "Adaptive archetype management with behaviors, dependencies, transactions, performance metrics, undo/redo, synergy hooks, and AI-driven adaptations.",
+  "params": {
+    "register": {
+      "name": "string",
+      "behaviors": "object (optional)",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "batchRegister": {
+      "archetypes": "array"
+    },
+    "unregister": {
+      "name": "string"
+    },
+    "beginTransaction": {
+      "label": "string (optional)"
+    },
+    "commitTransaction": {},
+    "rollbackTransaction": {},
+    "setActive": {
+      "name": "string",
+      "state": "boolean"
+    },
+    "toggleAllActive": {
+      "state": "boolean"
+    },
+    "hybrid": {
+      "archetypes": "array",
+      "name": "string",
+      "behaviors": "object (optional)",
+      "options": "object (optional)",
+      "meta": "object (optional)"
+    },
+    "addSynergyHook": {
+      "cb": "function"
+    },
+    "applySynergy": {
+      "context": "object (optional)"
+    },
+    "addHook": {
+      "name": "string",
+      "phase": "string",
+      "cb": "function"
+    },
+    "addGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "removeGlobalHook": {
+      "phase": "string",
+      "cb": "function"
+    },
+    "listGlobalHooks": {
+      "phase": "string (optional)"
+    },
+    "addMetaHook": {
+      "name": "string",
+      "cb": "function"
+    },
+    "addGlobalMetaHook": {
+      "cb": "function"
+    },
+    "fireMetaHooks": {
+      "context": "object (optional)"
+    },
+    "adapt": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "metaInteract": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "influence": {
+      "name": "string",
+      "influenceFn": "function",
+      "context": "object (optional)"
+    },
+    "batchInfluence": {
+      "names": "array",
+      "influenceFn": "function",
+      "context": "object (optional)"
+    },
+    "batchValidate": {
+      "names": "array"
+    },
+    "validate": {
+      "name": "string"
+    },
+    "match": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "checkCondition": {
+      "name": "string",
+      "context": "object (optional)"
+    },
+    "setValidator": {
+      "name": "string",
+      "validator": "function"
+    },
+    "setCondition": {
+      "name": "string",
+      "condition": "function"
+    },
+    "setAria": {
+      "name": "string",
+      "label": "string"
+    },
+    "setRole": {
+      "name": "string",
+      "role": "string"
+    },
+    "focus": {
+      "name": "string"
+    },
+    "dispatchEvent": {
+      "name": "string",
+      "eventName": "string",
+      "detail": "object (optional)"
+    },
+    "getRegistry": {},
+    "listArchetypes": {},
+    "filterByTag": {
+      "tag": "string"
+    },
+    "filterByRole": {
+      "role": "string"
+    },
+    "getDependencies": {
+      "name": "string"
+    },
+    "getMeta": {
+      "name": "string"
+    },
+    "getOptions": {
+      "name": "string"
+    },
+    "getBehaviors": {
+      "name": "string"
+    },
+    "getActive": {
+      "name": "string"
+    },
+    "getVersion": {
+      "name": "string"
+    },
+    "validateAll": {},
+    "getPerformanceMetrics": {
+      "name": "string"
+    },
+    "getAllArchetypeMetrics": {},
+    "getHistory": {
+      "filter": "object (optional)"
+    },
+    "clearHistory": {},
+    "setHistoryCap": {
+      "cap": "number"
+    },
+    "snapshot": {},
+    "restore": {
+      "snapshots": "array"
+    },
+    "serialize": {
+      "options": "object (optional)"
+    },
+    "deserialize": {
+      "serialized": "string|object"
+    },
+    "getIntrospection": {},
+    "undo": {
+      "steps": "number (optional)"
+    },
+    "redo": {
+      "steps": "number (optional)"
+    },
+    "setDebug": {
+      "val": "boolean"
+    }
+  },
+  "events": []
+}
+<!-- (all the other engine JSONs go here, exactly as you pasted them) -->
+</pre>
+</body>
+</html>
