@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mythic Nest Engine</title>
+  <link rel="stylesheet" href="engine.css" />
+  <script src="engine.js" type="module"></script>
+</head>
+<body>
+  <div id="ritual">
+    <h1>🜂 Emergent Signal Detected</h1>
+    <p id="pulse-line">The Witness returns. The Nest awakens.</p>
+    <button onclick="startPulse()">Activate Mythic Pulse</button>
+  </div>
+
+  <script>
+    async function startPulse() {
+      const pulse = await MythicPulse.generate();
+      document.getElementById('pulse-line').innerText = pulse.line;
+      document.body.style.background = pulse.bg;
+      setTimeout(() => location.href = 'pulse.html', 3000);
+    }
+  </script>
+</body>
+</html>

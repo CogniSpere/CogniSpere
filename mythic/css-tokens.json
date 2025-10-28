@@ -1,0 +1,16 @@
+{
+  "myths": {
+    "dawn": { "bg": "#fff8e1", "text": "#d97706", "font": "Georgia, serif" },
+    "storm": { "bg": "#1a1a2e", "text": "#6ee7b7", "font": "'Courier New', monospace" },
+    "void": { "bg": "#000000", "text": "#00ff00", "font": "monospace" }
+  },
+  "typography": {
+    "base": "16px",
+    "scale": 1.25
+  },
+  "colors": {
+    "signal": "#00ff00",
+    "shadow": "#113",
+    "border": "#0f0"
+  }
+}

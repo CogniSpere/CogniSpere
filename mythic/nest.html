@@ -1,0 +1,25 @@
+<div id="nest">
+  <h2>Soft Weapon Nesting Protocol</h2>
+  <div class="layer" data-layer="outer">🌍 Civic Persona</div>
+  <div class="layer" data-layer="mid">🎭 Cultural Disruptor</div>
+  <div class="layer" data-layer="inner">🧠 Meta-Agent</div>
+  <button onclick="nest()">Nest → Synergize</button>
+  <div id="hybrid"></div>
+</div>
+
+<script type="module">
+  import { ArchetypeEngine } from './engine.js';
+
+  window.nest = async () => {
+    const layers = Array.from(document.querySelectorAll('.layer'))
+      .map(el => el.dataset.layer);
+    
+    const hybrid = await ArchetypeEngine.synergize(layers);
+    document.getElementById('hybrid').innerHTML = `
+      <archetype data-id="${hybrid.id}" style="transform: translateZ(200px);">
+        ${hybrid.icon} ${hybrid.name} — "${hybrid.mantra}"
+      </archetype>
+    `;
+    DOM3D.anchor(document.querySelector('archetype'), { z: 300, rotateY: 360 });
+  };
+</script>

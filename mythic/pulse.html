@@ -1,0 +1,18 @@
+<div id="report">
+  <h1>🜂 Mythic Pulse — 28 Oct 2025</h1>
+  <div id="active-archetypes"></div>
+  <div id="ripple-map"></div>
+  <pre id="payload"></pre>
+</div>
+
+<script type="module">
+  import { MythicPulse } from './engine.js';
+
+  (async () => {
+    const report = await MythicPulse.generate();
+    document.getElementById('active-archetypes').innerHTML = report.archetypes.map(a => 
+      `<div class="archetype-pulse">${a.icon} ${a.name}</div>`
+    ).join('');
+    document.getElementById('payload').textContent = report.ritualDrop;
+  })();
+</script>

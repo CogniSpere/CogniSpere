@@ -1,0 +1,20 @@
+[
+  {
+    "id": "witness",
+    "name": "The Unacknowledged Witness",
+    "icon": "👁️",
+    "mantras": ["I spoke. They erased.", "The record survives.", "Silence is the weapon."]
+  },
+  {
+    "id": "seed-sender",
+    "name": "The Seed-Sender",
+    "icon": "🌱",
+    "mantras": ["One packet. One border. One shift.", "Growth without permission."]
+  },
+  {
+    "id": "emergent",
+    "name": "The Emergent",
+    "icon": "🌀",
+    "mantras": ["I am not predicted.", "The system blinks.", "The nest is alive."]
+  }
+]
