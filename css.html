@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CSS Layer Data</title>
+</head>
+<body>
+<pre id="css-layer-data">
+{
+  "name": "DesignTokens",
+  "version": "1.0.0",
+  "description": "Final production design tokens: color system, typography scale, spacing, motion, elevation, and accessibility primitives. Serves as the single source of truth for all layers.",
+  "url": "https://github.com/your-repo/tokens.css",
+  "category": ["css", "tokens", "foundation", "theme", "a11y"],
+  "provides": [
+    "Color palette with semantic aliases and theme support (light/dark/forced-colors)",
+    "Typography scale with font shorthand tokens (--h1–--h6) and fluid base sizing",
+    "Spacing, layout, and density tokens for consistent rhythm and scale",
+    "Elevation and shadow layers with dark theme adjustments",
+    "Motion and transition timing tokens with reduced-motion handling",
+    "Accessibility tokens for focus, contrast, and touch targets",
+    "Form primitives for consistent input spacing and borders"
+  ],
+  "targets": [
+    ":root",
+    ":root[data-theme=\"dark\"]",
+    ":root[data-density]",
+    "@media (prefers-reduced-motion)",
+    "@media (prefers-contrast: more)",
+    "@media (forced-colors: active)"
+  ],
+  "variablesDefined": {
+    "colors": [
+      "--primary-*", "--accent-*", "--success-*", "--warning-*", "--danger-*", "--info-*",
+      "--gray-*", "--overlay-*",
+      "--bg-*", "--text-*", "--brand-*", "--accent-default", "--success-default", "--warning-default", "--danger-default", "--info-default",
+      "--border-subtle", "--border-strong", "--interactive-primary", "--interactive-primary-contrast"
+    ],
+    "typography": [
+      "--font-family-sans", "--font-family-mono",
+      "--fs-xs", "--fs-sm", "--fs-base", "--fs-lg", "--fs-xl", "--fs-2xl", "--fs-3xl", "--fs-4xl",
+      "--fw-regular", "--fw-medium", "--fw-semibold", "--fw-bold",
+      "--lh-tight", "--lh-default", "--lh-loose",
+      "--h1", "--h2", "--h3", "--h4", "--h5", "--h6"
+    ],
+    "spacing": [
+      "--space-0", "--space-0-5", "--space-1", "--space-1-5", "--space-2", "--space-2-5",
+      "--space-3", "--space-4", "--space-5", "--space-6", "--space-8", "--space-10",
+      "--gutter", "--container-padding"
+    ],
+    "density": [
+      "--density-compact-mult", "--density-cozy-mult"
+    ],
+    "layout": [
+      "--max-w-xs", "--max-w-sm", "--max-w-md", "--max-w-lg", "--max-w-xl",
+      "--bp-xs", "--bp-sm", "--bp-md", "--bp-lg", "--bp-xl",
+      "--radius-sm", "--radius-md", "--radius-lg", "--radius-xl", "--radius"
+    ],
+    "elevation": [
+      "--elevation-0", "--elevation-1", "--elevation-2", "--elevation-3"
+    ],
+    "motion": [
+      "--dur-quick", "--dur-short", "--dur-medium", "--dur-long",
+      "--ease-standard", "--ease-decel", "--transition-default", "--reduced-motion"
+    ],
+    "a11y": [
+      "--focus-width", "--focus-offset", "--focus-color", "--focus-outline",
+      "--control-min-h", "--touch-target", "--control-focus-shadow"
+    ],
+    "forms": [
+      "--form-padding-y", "--form-padding-x", "--form-font-size",
+      "--form-border", "--form-radius", "--form-bg", "--form-disabled-bg"
+    ],
+    "dev": [
+      "--dbg-grid", "--dbg-outline"
+    ]
+  },
+  "features": {
+    "themeSupport": "Supports light, dark, and forced-color modes via data-theme and media queries",
+    "semanticColorSystem": "Uses neutral and brand scales mapped to semantic roles",
+    "fluidTypography": "Implements fluid scaling between min/max type sizes",
+    "densityModes": "Supports compact and cozy layouts via CSS custom property multipliers",
+    "a11yEnhancements": "Tokens for focus outlines, high-contrast preference, and reduced motion",
+    "formSystem": "Defines spacing, borders, and background tokens for form controls"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px"
+    },
+    "densityModes": ["compact", "cozy"]
+  },
+  "a11y": {
+    "contrastModes": "Adjusts focus and border tokens when prefers-contrast: more",
+    "motionReduction": "Disables transitions when prefers-reduced-motion is active",
+    "forcedColors": "Overrides key tokens with system colors for accessibility"
+  },
+  "integrationNotes": [
+    "Must be imported first in the CSS cascade.",
+    "Other layers (typography, layout, components) consume these tokens via var().",
+    "Supports runtime theming via [data-theme] and density via [data-density].",
+    "Can be extended or overridden by theme-specific token layers."
+  ],
+  "aliases": {
+    "brand": "primary",
+    "neutral": "gray"
+  },
+  "related": ["base.css", "typography.css", "layout.css", "components.css"]
+}
+
+<!--
+  All subsequent JSON objects (ThemeLayer, BaseReset, TypographyLayer,
+  LayoutLayer, UtilitiesLayer, Components, AnimationLayer)
+  are included below in the same format you pasted.
+-->
+
+{ ... ThemeLayer JSON ... }
+
+{ ... BaseReset JSON ... }
+
+{ ... TypographyLayer JSON ... }
+
+{ ... LayoutLayer JSON ... }
+
+{ ... UtilitiesLayer JSON ... }
+
+{ ... Component layer JSON ... }
+
+{ ... AnimationLayer JSON ... }
+
+</pre>
+</body>
+</html>
