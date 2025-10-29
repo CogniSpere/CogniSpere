@@ -1,0 +1,122 @@
+/* Typography layer
+   - Uses final tokens (font-family, fs-*, fw-*, lh-*, h1..h6 tokens, text colors).
+*/
+
+/* Base text elements */
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { font-family: var(--font-family-sans); font-size: var(--fs-base); line-height: var(--lh-default); color: var(--text-default); }
+
+/* Headings: use shorthand tokens (font) defined in tokens.css */
+h1, .h1 { font: var(--h1); margin: 0 0 var(--space-5); font-weight: var(--fw-bold); }
+h2, .h2 { font: var(--h2); margin: 0 0 var(--space-4); font-weight: var(--fw-semibold); }
+h3, .h3 { font: var(--h3); margin: 0 0 var(--space-4); font-weight: var(--fw-semibold); }
+h4, .h4 { font: var(--h4); margin: 0 0 var(--space-3); font-weight: var(--fw-medium); }
+h5, .h5 { font: var(--h5); margin: 0 0 var(--space-3); font-weight: var(--fw-medium); }
+h6, .h6 { font: var(--h6); margin: 0 0 var(--space-2); font-weight: var(--fw-medium); color: var(--text-muted); }
+
+/* Responsive heading adjustments (override font-size where helpful) */
+@media (min-width: 768px) {
+  h1, .h1 { font-size: calc(var(--fs-4xl) * 1.04); }
+  h2, .h2 { font-size: calc(var(--fs-3xl) * 1.03); }
+}
+
+/* Paragraph rhythm and lead paragraph */
+p { margin: 0 0 var(--space-4); font-size: var(--fs-base); color: var(--text-default); }
+.lead {
+  font-size: var(--fs-lg);
+  line-height: calc(var(--lh-default) + 0.05);
+  color: var(--text-default);
+  margin: 0 0 var(--space-5);
+}
+
+/* Links */
+a {
+  color: var(--brand-default);
+  text-decoration: none;
+  transition: color var(--dur-medium) var(--ease-standard);
+}
+a:hover, a:focus { color: var(--brand-hover); text-decoration: underline; }
+a:active { color: var(--brand-pressed); }
+
+/* Muted text and emphasis */
+.small, small { font-size: var(--fs-sm); color: var(--text-muted); }
+.text-muted { color: var(--text-muted); }
+strong, b { font-weight: var(--fw-bold); color: inherit; }
+
+/* Inline code and keyboard */
+code, kbd, samp, pre code {
+  font-family: var(--font-family-mono);
+  background: rgba(15,23,34,0.04);
+  padding: 0.125rem 0.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875em;
+  color: inherit;
+}
+kbd { box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25); padding: 0.08rem 0.2rem; }
+
+/* Preformatted blocks */
+pre {
+  background: rgba(15,23,34,0.04);
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  overflow: auto;
+  font-family: var(--font-family-mono);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0 0 var(--space-4);
+}
+
+/* Blockquotes */
+blockquote {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
+  border-left: 4px solid var(--border-subtle);
+  background: rgba(15,23,34,0.02);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+}
+blockquote p { margin: 0; color: inherit; }
+
+/* Lists spacing */
+ul, ol {
+  margin: 0 0 var(--space-4);
+  padding-left: 1.25rem;
+}
+ul li + li, ol li + li { margin-top: 0.5rem; }
+
+/* Definition lists */
+dl { margin: 0 0 var(--space-4); }
+dt { font-weight: var(--fw-medium); }
+dd { margin: 0 0 var(--space-3) 0; }
+
+/* Headings anchors */
+.heading-anchor {
+  display: inline-block;
+  margin-left: 0.5rem;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--dur-quick) var(--ease-standard);
+  text-decoration: none;
+}
+h1:hover .heading-anchor, h2:hover .heading-anchor, h3:hover .heading-anchor,
+.h1:hover .heading-anchor, .h2:hover .heading-anchor, .h3:hover .heading-anchor {
+  opacity: 1;
+}
+
+/* Utilities (typography-specific) */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Display utility for large hero headings */
+.display-1 { font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.05; font-weight: var(--fw-bold); margin: 0 0 var(--space-6); }
+
+/* Captions & meta */
+.caption { font-size: var(--fs-sm); color: var(--text-muted); }
+
+/* Dark mode adjustments inherit tokens in tokens.css */
+@media print {
+  a[href]:after { content: " (" attr(href) ")"; }
+  pre { page-break-inside: avoid; }
+}

@@ -1,0 +1,130 @@
+/* Animations & motion utilities
+   - Centralized keyframes, animation utilities, and transition helpers.
+   - Respects prefers-reduced-motion: reduce and the tokenized durations from tokens.css.
+*/
+
+/* ==========================
+   Keyframes
+   ========================== */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slide-down {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pop {
+  0% { transform: scale(.96); opacity: 0; }
+  60% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==========================
+   Animation utility classes
+   - Small, composable classes to apply common effects.
+   ========================== */
+
+/* Fade */
+.animate-fade-in {
+  animation: fade-in var(--dur-medium) var(--ease-standard) both;
+}
+.animate-fade-out {
+  animation: fade-out var(--dur-short) var(--ease-dec) both;
+}
+
+/* Slide and pop */
+.animate-slide-up {
+  animation: slide-up var(--dur-medium) var(--ease-standard) both;
+}
+.animate-slide-down {
+  animation: slide-down var(--dur-medium) var(--ease-standard) both;
+}
+.animate-pop {
+  animation: pop var(--dur-short) var(--ease-standard) both;
+}
+
+/* Spin (useful for spinners) */
+.animate-spin {
+  animation: spin 800ms linear infinite;
+}
+
+/* Shimmer (skeleton loaders) */
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Animation speed modifiers */
+.anim-fast { animation-duration: var(--dur-quick) !important; }
+.anim-medium { animation-duration: var(--dur-medium) !important; }
+.anim-slow { animation-duration: var(--dur-long) !important; }
+
+/* Transition helpers */
+.transition-default {
+  transition: var(--transition-default);
+}
+.transition-fade {
+  transition: opacity var(--dur-medium) var(--ease-standard);
+}
+.transition-transform {
+  transition: transform var(--dur-medium) var(--ease-standard);
+}
+
+/* Reduced-motion handling: prefer no motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-out,
+  .animate-slide-up,
+  .animate-slide-down,
+  .animate-pop,
+  .animate-spin,
+  .animate-shimmer,
+  .transition-default,
+  .transition-fade,
+  .transition-transform {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Small helpers often used by JS-driven toggles */
+.is-animating { will-change: transform, opacity; }
+
+/* ==========================
+   Motion-safe variants for opacity/transform toggles
+   - Useful for progressive enhancement: apply .motion-safe to enable animations when allowed.
+   ========================== */
+.motion-safe .animate-pop { animation-play-state: running; }
+.motion-safe .animate-slide-up { animation-play-state: running; }
+
+/* ==========================
+   Utility: honor reduced motion via custom property override
+   - Consumers can set --dur-medium: 1ms to forcibly reduce motion for a subtree if desired.
+   ========================== */
+.motion-reduced * {
+  transition-duration: 1ms !important;
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* End of animations.css */

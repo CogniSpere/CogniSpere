@@ -1,0 +1,193 @@
+/* ======================================================
+   Theme Layer — Maps tokens to component semantics
+   Loaded AFTER tokens.css
+   Supports: light/dark, accent, compact, high-contrast
+   ====================================================== */
+
+/* ————————————————————————
+   Color Scheme (UA + form controls)
+   ———————————————————————— */
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"],
+:root.theme-dark {
+  color-scheme: dark;
+}
+
+/* Auto-respect OS preference if no explicit theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not(.theme-light) {
+    color-scheme: dark;
+  }
+}
+
+/* ————————————————————————
+   Component Semantic Aliases
+   ———————————————————————— */
+:root {
+  /* Surfaces */
+  --surface-bg: var(--bg-elevated);
+  --canvas-bg: var(--bg-default);
+  --panel-bg: var(--bg-elevated);
+  --surface-weak: var(--bg-muted);
+  --surface-inset: var(--bg-inset);
+
+  /* Text */
+  --text: var(--text-default);
+  --text-weak: var(--muted);
+  --text-placeholder: var(--text-muted);
+
+  /* Links */
+  --link-color: var(--brand-default);
+  --link-hover: var(--brand-hover);
+  --link-pressed: var(--brand-pressed);
+
+  /* Buttons — Primary */
+  --btn-bg: var(--brand-default);
+  --btn-fg: var(--brand-foreground);
+  --btn-bg-hover: var(--brand-hover);
+  --btn-bg-pressed: var(--brand-pressed);
+  --btn-disabled-bg: var(--brand-disabled);
+  --btn-disabled-fg: var(--text-muted);
+
+  /* Form Controls */
+  --input-bg: var(--form-bg);
+  --input-fg: var(--text);
+  --input-border: var(--border-default);
+  --input-radius: var(--form-radius);
+  --input-placeholder: var(--text-placeholder);
+  --input-focus-ring: var(--focus-ring);
+
+  /* Borders */
+  --divider: var(--border-default);
+  --divider-subtle: var(--border-subtle);
+
+  /* Overlays */
+  --backdrop: var(--overlay-60);
+  --overlay-tint: var(--brand-tint-10);
+
+  /* Status */
+  --success: var(--success-default);
+  --warning: var(--warning-default);
+  --danger: var(--danger-default);
+  --info: var(--info-default);
+
+  /* Elevation */
+  --shadow-sm: var(--elevation-1);
+  --shadow-md: var(--elevation-2);
+  --shadow-lg: var(--elevation-3);
+
+  /* Layout */
+  --panel-radius: var(--radius);
+  --panel-padding: var(--space-4);
+  --control-radius: var(--form-radius);
+  --control-border: var(--input-border);
+  --control-min-height: var(--control-min-h);
+
+  /* Subtle effects */
+  --muted-surface: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01));
+}
+
+/* ————————————————————————
+   Dark Theme Overrides
+   ———————————————————————— */
+:root[data-theme="dark"],
+:root.theme-dark {
+  --surface-bg: var(--bg-elevated);
+  --canvas-bg: var(--bg-default);
+  --panel-bg: var(--bg-elevated);
+  --surface-weak: var(--bg-muted);
+  --text: var(--text-default);
+  --text-weak: var(--muted);
+
+  --btn-bg: var(--interactive-primary);
+  --btn-fg: var(--interactive-primary-contrast);
+  --btn-bg-hover: color-mix(in srgb, var(--interactive-primary) 90%, white 10%);
+  --btn-bg-hover: color-mix(in srgb, var(--interactive-primary) 90%, white 10%), var(--primary-400);
+  --btn-bg-pressed: color-mix(in srgb, var(--interactive-primary) 80%, white 20%), var(--primary-300);
+  --backdrop: rgba(0, 0, 0, 0.75);
+
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: var(--border-default);
+  --input-placeholder: var(--muted);
+
+  --muted-surface: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+/* ————————————————————————
+   Accent Theme (Secondary Brand)
+   ———————————————————————— */
+:root.theme-accent {
+  --link-color: var(--accent-default);
+  --link-hover: color-mix(in srgb, var(--accent-default) 88%, black), #5a0ce6;
+  --link-pressed: color-mix(in srgb, var(--accent-default) 76%, black), #4a0bc7;
+
+  --btn-bg: var(--accent-default);
+  --btn-fg: var(--on-accent);
+  --btn-bg-hover: color-mix(in srgb, var(--accent-default) 88%, black), #5a0ce6;
+  --btn-bg-pressed: color-mix(in srgb, var(--accent-default) 76%, black), #4a0bc7;
+}
+
+/* ————————————————————————
+   Compact Density (opt-in)
+   ———————————————————————— */
+:root.theme-compact,
+:root[data-density="compact"] {
+  --panel-padding: calc(var(--space-4) * 0.75);
+  --control-radius: calc(var(--form-radius) * 0.875);
+  --control-min-height: calc(var(--control-min-h) * 0.9);
+}
+
+/* ————————————————————————
+   High Contrast Mode
+   ———————————————————————— */
+@media (prefers-contrast: more) {
+  :root {
+    --focus-ring: 3px solid CanvasText;
+    --input-focus-ring: 3px solid Highlight;
+    --btn-bg-hover: CanvasText;
+    --btn-fg: Canvas;
+  }
+}
+
+/* ————————————————————————
+   Utility Classes (scoped to containers)
+   ———————————————————————— */
+:where(.theme-surface-muted) {
+  background: var(--surface-weak);
+}
+:where(.theme-surface-elevated) {
+  background: var(--surface-bg);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--panel-padding);
+}
+:where(.theme-card) {
+  background: var(--panel-bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--panel-radius);
+  padding: var(--panel-padding);
+}
+
+/* ————————————————————————
+   Brand Tint (dynamic, safe fallback)
+   ———————————————————————— */
+:root {
+  --brand-tint-10: rgba(var(--primary-500-rgb, 13, 110, 253), 0.08);
+  --brand-tint-20: rgba(var(--primary-500-rgb, 13, 110, 253), 0.16);
+}
+
+/* ————————————————————————
+   Scrollbar (optional, respects theme)
+   ———————————————————————— */
+:root {
+  scrollbar-color: var(--text-muted) transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    scrollbar-color: var(--muted) transparent;
+  }
+}

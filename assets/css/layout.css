@@ -1,0 +1,214 @@
+/* Layout layer
+   - Containers, responsive grid, wrappers, and spacing utilities.
+   - Updated to use final tokens (max-w-*, bp-*, radius tokens, gutter tokens).
+*/
+
+/* ===== Container widths (centered) ===== */
+.container {
+  width: 100%;
+  max-width: var(--max-w-lg);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+/* Named breakpoints for container sizing */
+@media (min-width: 640px) {
+  .container { max-width: var(--max-w-md); }
+}
+@media (min-width: 768px) {
+  .container { max-width: var(--max-w-lg); }
+}
+@media (min-width: 1280px) {
+  .container { max-width: var(--max-w-xl); }
+}
+
+/* Full-width container variant (no side padding) */
+.container-fluid {
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 100%;
+}
+
+/* ===== Row / 12-column flex grid (simple, predictable) ===== */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: calc(var(--gutter) * -0.5);
+  margin-right: calc(var(--gutter) * -0.5);
+  align-items: stretch;
+}
+
+/* Column base */
+.col {
+  padding-left: calc(var(--gutter) * 0.5);
+  padding-right: calc(var(--gutter) * 0.5);
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Auto-width column */
+.col-auto {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Column span utilities (1-12) */
+.col-1  { flex: 0 0 calc(100% / 12 * 1); max-width: calc(100% / 12 * 1); }
+.col-2  { flex: 0 0 calc(100% / 12 * 2); max-width: calc(100% / 12 * 2); }
+.col-3  { flex: 0 0 calc(100% / 12 * 3); max-width: calc(100% / 12 * 3); }
+.col-4  { flex: 0 0 calc(100% / 12 * 4); max-width: calc(100% / 12 * 4); }
+.col-5  { flex: 0 0 calc(100% / 12 * 5); max-width: calc(100% / 12 * 5); }
+.col-6  { flex: 0 0 calc(100% / 12 * 6); max-width: calc(100% / 12 * 6); }
+.col-7  { flex: 0 0 calc(100% / 12 * 7); max-width: calc(100% / 12 * 7); }
+.col-8  { flex: 0 0 calc(100% / 12 * 8); max-width: calc(100% / 12 * 8); }
+.col-9  { flex: 0 0 calc(100% / 12 * 9); max-width: calc(100% / 12 * 9); }
+.col-10 { flex: 0 0 calc(100% / 12 * 10); max-width: calc(100% / 12 * 10); }
+.col-11 { flex: 0 0 calc(100% / 12 * 11); max-width: calc(100% / 12 * 11); }
+.col-12 { flex: 0 0 calc(100% / 12 * 12); max-width: calc(100% / 12 * 12); }
+
+/* Responsive column prefixes: e.g., .sm\:col-6 */
+@media (min-width: 640px) {
+  .sm\:col-1  { flex: 0 0 calc(100% / 12 * 1); max-width: calc(100% / 12 * 1); }
+  .sm\:col-2  { flex: 0 0 calc(100% / 12 * 2); max-width: calc(100% / 12 * 2); }
+  .sm\:col-3  { flex: 0 0 calc(100% / 12 * 3); max-width: calc(100% / 12 * 3); }
+  .sm\:col-4  { flex: 0 0 calc(100% / 12 * 4); max-width: calc(100% / 12 * 4); }
+  .sm\:col-6  { flex: 0 0 calc(100% / 12 * 6); max-width: calc(100% / 12 * 6); }
+  .sm\:col-12 { flex: 0 0 100%; max-width: 100%; }
+}
+@media (min-width: 768px) {
+  .md\:col-4  { flex: 0 0 calc(100% / 12 * 4); max-width: calc(100% / 12 * 4); }
+  .md\:col-6  { flex: 0 0 calc(100% / 12 * 6); max-width: calc(100% / 12 * 6); }
+  .md\:col-8  { flex: 0 0 calc(100% / 12 * 8); max-width: calc(100% / 12 * 8); }
+  .md\:col-12 { flex: 0 0 100%; max-width: 100%; }
+}
+@media (min-width: 1024px) {
+  .lg\:col-3 { flex: 0 0 calc(100% / 12 * 3); max-width: calc(100% / 12 * 3); }
+  .lg\:col-4 { flex: 0 0 calc(100% / 12 * 4); max-width: calc(100% / 12 * 4); }
+  .lg\:col-6 { flex: 0 0 calc(100% / 12 * 6); max-width: calc(100% / 12 * 6); }
+}
+
+/* ===== CSS Grid helpers ===== */
+.grid {
+  display: grid;
+  gap: var(--gutter);
+}
+
+.grid-auto-fit {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.grid-auto-fill {
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+}
+
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ===== Spacing / Stack utilities ===== */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap, var(--space-4));
+}
+
+.inline-stack {
+  display: flex;
+  flex-direction: row;
+  gap: var(--stack-gap, var(--space-4));
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stack > * + * { margin-top: 0; }
+
+.spacer { flex: 1 1 auto; min-width: 0; }
+
+/* ===== Wrappers & panels ===== */
+.wrapper {
+  padding: var(--space-5);
+  background: var(--bg-elevated);
+  border-radius: var(--radius);
+  box-shadow: var(--elevation-1);
+}
+
+/* Card container with standard spacing */
+.card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--elevation-1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card body content spacing */
+.card > .card-body {
+  padding: var(--space-4);
+  flex: 1 1 auto;
+}
+
+/* Card header / footer */
+.card > .card-header,
+.card > .card-footer {
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border-bottom: 1px solid var(--border-default);
+}
+.card > .card-footer {
+  border-top: 1px solid var(--border-default);
+  border-bottom: none;
+}
+
+/* ===== Sticky / fixed helpers ===== */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  background: inherit;
+}
+
+/* Fullscreen centered layout helper */
+.center-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+/* ===== Utility alignment helpers (layout-specific) ===== */
+.align-start { align-items: flex-start; }
+.align-center { align-items: center; }
+.align-end   { align-items: flex-end; }
+.justify-start  { justify-content: flex-start; }
+.justify-center { justify-content: center; }
+.justify-end    { justify-content: flex-end; }
+.justify-between { justify-content: space-between; }
+.justify-around  { justify-content: space-around; }
+
+/* ===== Helpers for overflow and containment ===== */
+.overflow-auto { overflow: auto; }
+.overflow-hidden { overflow: hidden; }
+
+.contain {
+  contain: layout paint size;
+}
+
+/* ===== Gutterless row variant ===== */
+.row.no-gutter {
+  margin-left: 0;
+  margin-right: 0;
+}
+.row.no-gutter > .col { padding-left: 0; padding-right: 0; }
+
+/* ===== Print/Reduced motion considerations ===== */
+@media (prefers-reduced-motion: reduce) {
+  .sticky-top { position: relative; }
+}
+@media print {
+  .container { padding-left: var(--space-2); padding-right: var(--space-2); }
+  .row { page-break-inside: avoid; }
+}
