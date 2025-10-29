@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CogniSpere 3D Scene</title>
+
+  <!-- Correct CSS Order -->
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/theme.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/typography.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/utilities.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+
+  <style>
+    body, html { margin: 0; height: 100%; background: var(--primary-0); display: flex; justify-content: center; align-items: center; }
+    canvas { display: block; border: 2px solid var(--accent-2); }
+  </style>
+</head>
+<body>
+  <canvas id="sceneCanvas" width="800" height="600"></canvas>
+
+  <!-- Scripts -->
+  <script src="assets/scripts/hookEngine.js" defer></script>
+  <script src="assets/scripts/archetypeEngine.js" defer></script>
+  <script src="assets/scripts/domEngine.js" defer></script>
+  <script src="assets/scripts/gestureEngine.js" defer></script>
+  <script src="assets/scripts/interactionEngine.js" defer></script>
+  <script src="assets/scripts/sceneEngine.js" defer></script>
+  <script src="assets/scripts/renderEngine.js" defer></script>
+  <script src="assets/scripts/cameraEngine.js" defer></script>
+  <script src="assets/scripts/uiEngine.js" defer></script>
+  <script src="assets/scripts/audioEngine.js" defer></script>
+  <script src="assets/scripts/dataEngine.js" defer></script>
+  <script src="assets/scripts/metaEngine.js" defer></script>
+
+  <script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Example: simple 3D scene placeholder
+      const canvas = document.getElementById('sceneCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let angle = 0;
+      function animate() {
+        ctx.fillStyle = 'var(--primary-0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const x = 400 + Math.cos(angle) * 200;
+        const y = 300 + Math.sin(angle) * 200;
+
+        ctx.fillStyle = 'var(--accent-3)';
+        ctx.beginPath();
+        ctx.arc(x, y, 50, 0, Math.PI * 2);
+        ctx.fill();
+
+        angle += 0.02;
+        requestAnimationFrame(animate);
+      }
+      animate();
+    });
+  </script>
+</body>
+</html>
