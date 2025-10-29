@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-density="cozy">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MetaGarden 🌱</title>
+
+  <!-- ✅ CSS Layers -->
+  <link rel="stylesheet" href="/assets/css/tokens.css" />
+<link rel="stylesheet" href="/assets/css/theme.css" />
+<link rel="stylesheet" href="/assets/css/base.css" />
+<link rel="stylesheet" href="/assets/css/typography.css" />
+<link rel="stylesheet" href="/assets/css/layout.css" />
+<link rel="stylesheet" href="/assets/css/utilities.css" />
+<link rel="stylesheet" href="/assets/css/components.css" />
+<link rel="stylesheet" href="/assets/css/animations.css" />
+
+
+  <style>
+    canvas { display: block; width: 100%; height: 100vh; }
+    .plant-label {
+      position: absolute;
+      background: var(--card-bg);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-md);
+      transition: var(--transition-default);
+    }
+  </style>
+</head>
+<body class="bg-elevated text-default">
+
+  <!-- 🌞 Controls -->
+  <div class="stack p-4 gap-2">
+    <button class="btn btn-primary" id="sunBtn">☀️ Sun</button>
+    <button class="btn btn-secondary" id="rainBtn">🌧️ Rain</button>
+    <button class="btn btn-outline" id="seasonBtn">🍂 Next Season</button>
+  </div>
+
+  <!-- 🌱 Anchored DOM Elements -->
+  <div id="plantLabel" class="plant-label" style="display:none;">🌼 Plant</div>
+
+  <!-- 🎨 3D Canvas -->
+  <canvas id="gardenCanvas"></canvas>
+
+  <!-- 🧠 JS Engines -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+<script src="/assets/scripts/web-3d.js"></script>
+<script src="/assets/scripts/DOM3DtoGPUbridge.js"></script>
+<script src="/assets/scripts/archetypeEngine.js"></script>
+<script src="/assets/scripts/domEngine.js"></script>
+<script src="/assets/scripts/eventEngine.js"></script>
+<script src="/assets/scripts/gestureEngine.js"></script>
+<script src="/assets/scripts/hookEngine.js"></script>
+<script src="/assets/scripts/symbolEngine.js"></script>
+<script src="/assets/scripts/narrativeEngine.js"></script>
+<script src="/assets/scripts/memoryEngine.js"></script>
+<script src="/assets/scripts/stateEngine.js"></script>
+<script src="/assets/scripts/layoutEngine.js"></script>
+<script src="/assets/scripts/synergyEngine.js"></script>
+
+
+  <!-- 🚀 Initialization -->
+  <script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gardenCanvas') });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.position.z = 5;
+
+  const dom3d = new DOM3DManager({ scene, camera, renderer });
+  const archetypes = new ArchetypeEngine();
+  const narrative = new NarrativeEngine();
+  const synergy = new SynergyEngine();
+
+  const label = document.getElementById('plantLabel');
+  const flower = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 32, 32),
+    new THREE.MeshStandardMaterial({ color: '#ff69b4' })
+  );
+  scene.add(flower);
+  dom3d.attach(label, flower, { offsetY: 1 });
+  label.style.display = 'block';
+
+  // 🌞 Bloom Archetype
+  archetypes.register('bloom', {
+    behaviors: {
+      grow: () => flower.scale.set(1.5, 1.5, 1.5),
+      colorize: () => flower.material.color.set('#ffd700'),
+      label: () => label.textContent = 'Blooming 🌼'
+    }
+  });
+
+  // 🌧️ Wilt Archetype
+  archetypes.register('wilt', {
+    behaviors: {
+      shrink: () => flower.scale.set(0.5, 0.5, 0.5),
+      fade: () => flower.material.color.set('#708090'),
+      label: () => label.textContent = 'Wilting 🌧️'
+    }
+  });
+
+  // 🍂 Seasons
+  const seasons = ['spring', 'summer', 'fall', 'winter'];
+  let seasonIndex = 0;
+  document.getElementById('seasonBtn').onclick = () => {
+    seasonIndex = (seasonIndex + 1) % seasons.length;
+    const season = seasons[seasonIndex];
+    narrative.track({ season });
+    document.body.setAttribute('data-theme', season === 'winter' ? 'dark' : 'light');
+    label.textContent = `Season: ${season} 🍃`;
+  };
+
+  // ☀️ Sun Button
+  document.getElementById('sunBtn').onclick = () => {
+    archetypes.setActive('bloom', true);
+    const behaviors = archetypes.getBehaviors('bloom');
+    Object.values(behaviors).forEach(fn => fn());
+  };
+
+  // 🌧️ Rain Button
+  document.getElementById('rainBtn').onclick = () => {
+    archetypes.setActive('wilt', true);
+    const behaviors = archetypes.getBehaviors('wilt');
+    Object.values(behaviors).forEach(fn => fn());
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+    dom3d.update();
+  }
+  animate();
+</script>
+
+</body>
+</html>
