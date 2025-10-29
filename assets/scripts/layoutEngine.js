@@ -1,531 +1,349 @@
-/**
- * layoutEngine.js - Ultimate Layout Engine
- * Features:
- * - Web Components integration
- * - Responsive layout adaptations
- * - Theming support with CSS variables
- * - Undo/redo functionality
- * - Layout serialization/deserialization
- * - Virtual rendering for large datasets
- * - Enhanced accessibility with focus management
- * - Internationalization support
- * - Maintains all previous features
- */
-
-/**
- * @typedef {Object} LayoutOptions
- * @property {string} [ariaLabel]
- * @property {string} [role]
- * @property {string[]} [cssClasses]
- * @property {number} [debounce] // ms
- * @property {string} [transition] // CSS transition property
- * @property {Function} [validator] // Async validator for items
- * @property {string} [template] // HTML template string
- * @property {string[]} [tags] // Tags for filtering
- * @property {string} [description] // Layout description
- * @property {Object} [theme] // Theme configuration
- * @property {boolean} [virtual] // Enable virtual rendering
- * @property {boolean} [responsive] // Enable responsive adaptations
- * @property {string} [lang] // Language for i18n
- */
-
-/**
- * @typedef {Object} LayoutContext
- * @property {string} [any]
- */
-
-/**
- * @typedef {Object} LayoutRenderer
- * @property {(container: Element, items: any[], context: LayoutContext) => Promise<any> | any}
- */
-
-/**
- * @typedef {Object} HookCallback
- * @property {(payload: { container: Element; type: string; items: any[]; context: LayoutContext; result?: any; error?: LayoutError; performance?: { duration: number } }) => Promise<void> | void}
- */
-
-/**
- * @typedef {Object} HistoryEntry
- * @property {string} type
- * @property {Element} container
- * @property {any[]} items
- * @property {LayoutContext} context
- * @property {number} timestamp
- * @property {LayoutError} [error]
- * @property {{duration: number}} [performance]
- */
-
-/**
- * @typedef {Object} LayoutError extends Error
- * @property {string} code
- * @property {any} [details]
- */
-
-/**
- * @typedef {Object} MergeStrategy
- * @property {(base: LayoutContext, update: LayoutContext) => LayoutContext}
- */
-
-/**
- * @typedef {Object} UndoState
- * @property {string} innerHTML
- * @property {string[]} classes
- * @property {Object} attributes
- */
-
+// LayoutEngine - enhanced with state sync, narrative, GPU bridge, synergy/meta-context, per-item metrics
 const LayoutEngine = (() => {
-  const layouts = new Map();
-  const layoutMeta = new Map();
+  const layouts = new Map(); // type -> { renderer, options }
+  const meta = new Map(); // type -> { registered, options }
   const globalHooks = { beforeBuild: [], afterBuild: [], error: [] };
-  const typeHooks = new Map();
-  const buildHistory = [];
-  const undoStack = new Map(); // container => stack of UndoState
-  let debug = false;
-  let historyCap = 500;
+  const typeHooks = new Map(); // type -> { beforeBuild:[], afterBuild:[], error:[] }
+  const history = []; // build history entries
+  const undoStacks = new WeakMap(); // container -> [states]
+  const perf = new Map(); // type -> { latencies:[], builds, itemMetrics: Map(itemId -> { last, avg, count }) }
+  const stateStore = (() => {
+    const store = new Map();
+    const subs = new Map();
+    return {
+      set(key, val) {
+        const old = store.get(key);
+        store.set(key, val);
+        const list = subs.get(key) || [];
+        for (const cb of list.slice()) try { cb(val, old); } catch (e) {}
+        return { old, new: val };
+      },
+      get(key) { return store.get(key); },
+      subscribe(key, cb) { if (!subs.has(key)) subs.set(key, []); subs.get(key).push(cb); return () => { subs.set(key, subs.get(key).filter(x => x!==cb)); }; },
+      batchSet(entries) { for (const [k,v] of Object.entries(entries)) this.set(k,v); }
+    };
+  })();
 
-  // Utility: Debounce function
-  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-    return (...args: Parameters<T>) => {
-      clearTimeout(timeout!);
-      timeout = setTimeout(() => func(...args), wait);
+  // Meta-context / synergy
+  const metaContext = new Map(); // topic -> value
+  const metaSubs = new Map(); // topic -> [cb]
+  function publishMeta(topic, payload) {
+    metaContext.set(topic, payload);
+    const s = metaSubs.get(topic) || [];
+    for (const cb of s.slice()) try { cb(payload); } catch (e) {}
+  }
+  function onMeta(topic, cb) { if (!metaSubs.has(topic)) metaSubs.set(topic, []); metaSubs.get(topic).push(cb); return () => { metaSubs.set(topic, metaSubs.get(topic).filter(x=>x!==cb)); }; }
+  function readMeta(topic) { return metaContext.get(topic); }
+
+  // Storyboard / simple narrative hooks (progression)
+  const storyboards = new Map(); // name -> { steps: [{id, condition}], pointer }
+  function registerStoryboard(name, steps = []) {
+    if (!name) throw new Error('storyboard name required');
+    storyboards.set(name, { steps: steps.map(s=>({ ...s, done:false })), pointer: 0 });
+    return () => storyboards.delete(name);
+  }
+  async function advanceStoryboard(name, context) {
+    const sb = storyboards.get(name);
+    if (!sb) throw new Error('storyboard not found');
+    for (let i = sb.pointer; i < sb.steps.length; i++) {
+      const step = sb.steps[i];
+      const ok = typeof step.condition === 'function' ? await Promise.resolve(step.condition(context)) : !!step.auto;
+      if (ok) { step.done = true; sb.pointer = i+1; dispatchEventSafe('layout:story:step', { storyboard: name, step: step.id, context }); }
+      else break;
+    }
+    return sb;
+  }
+  function resetStoryboard(name) { const sb = storyboards.get(name); if (sb) { sb.steps.forEach(s=>s.done=false); sb.pointer = 0; } }
+
+  // GPU bridge (lightweight): attempts WebGL2, fallback WebGL1, else Canvas2D
+  function createGPUBridge(canvas, opts = {}) {
+    const ctx = (function(){
+      if (!canvas) return null;
+      try {
+        return canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('2d');
+      } catch(e) { return null; }
+    })();
+    return {
+      ctx,
+      render(items, drawFn) {
+        if (!ctx) return null;
+        try {
+          if (ctx instanceof WebGLRenderingContext || (typeof WebGL2RenderingContext !== 'undefined' && ctx instanceof WebGL2RenderingContext)) {
+            // basic clear + let drawFn perform GL ops
+            ctx.viewport(0,0,canvas.width,canvas.height);
+            ctx.clearColor(0,0,0,0);
+            ctx.clear(ctx.COLOR_BUFFER_BIT);
+            return drawFn(ctx, items) || null;
+          } else if (ctx instanceof CanvasRenderingContext2D) {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            return drawFn(ctx, items) || null;
+          }
+        } catch (e) { console.error('GPU bridge render error', e); }
+        return null;
+      }
     };
   }
 
-  // Utility: Debug logger
-  function log(...args: any[]) {
-    if (debug) console.log('[LayoutEngine]', ...args);
+  // helpers
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function log(...a){ if (LayoutEngine.debug) try{ console.log('[LayoutEngine]', ...a); }catch(_){} }
+  function createError(msg, code, details){ const e = new Error(msg); e.code = code; e.details = details; return e; }
+
+  function register(type, renderer, options = {}) {
+    if (!type || typeof type !== 'string') throw createError('invalid type', 'INVALID_TYPE');
+    if (typeof renderer !== 'function') throw createError('invalid renderer', 'INVALID_RENDERER');
+    layouts.set(type, { renderer, options });
+    meta.set(type, { registered: Date.now(), options: Object.assign({}, options) });
+    if (!perf.has(type)) perf.set(type, { latencies: [], builds: 0, itemMetrics: new Map() });
+    return () => unregister(type);
+  }
+  async function lazyRegister(type, loader) {
+    if (layouts.has(type)) return;
+    try {
+      const m = await loader();
+      register(type, m.renderer, m.options||{});
+    } catch (e) { throw createError('lazy load failed','LAZY_LOAD_ERROR',{type,error:e}); }
+  }
+  function unregister(type){ layouts.delete(type); meta.delete(type); typeHooks.delete(type); perf.delete(type); }
+
+  function addGlobalHook(phase, cb){ if (!globalHooks[phase]) throw createError('invalid phase','INVALID_PHASE'); globalHooks[phase].push(cb); return ()=>{ globalHooks[phase]=globalHooks[phase].filter(x=>x!==cb); }; }
+  function addTypeHook(type, phase, cb){ if (!typeHooks.has(type)) typeHooks.set(type,{ beforeBuild:[], afterBuild:[], error:[] }); const bucket = typeHooks.get(type); if (!bucket[phase]) throw createError('invalid phase','INVALID_PHASE'); bucket[phase].push(cb); return ()=>{ bucket[phase] = bucket[phase].filter(x=>x!==cb); }; }
+
+  async function _fireHooks(type, phase, payload){
+    for (const cb of (globalHooks[phase]||[]).slice()) try{ await Promise.resolve(cb(payload)); }catch(e){ log('global hook err',e); }
+    const t = typeHooks.get(type);
+    if (!t || !t[phase]) return;
+    for (const cb of t[phase].slice()) try{ await Promise.resolve(cb(payload)); }catch(e){ log('type hook err',e); }
   }
 
-  // Utility: Create structured error
-  function createError(message: string, code: string, details?: any): LayoutError {
-    const error = new Error(message) as LayoutError;
-    error.code = code;
-    error.details = details;
-    return error;
+  function _saveUndo(container){
+    if (!undoStacks.has(container)) undoStacks.set(container,[]);
+    const stack = undoStacks.get(container);
+    const state = { innerHTML: container.innerHTML, classes: Array.from(container.classList), attrs: {} };
+    for (const a of Array.from(container.attributes)) state.attrs[a.name] = a.value;
+    stack.push(state);
+    if (stack.length>20) stack.shift();
   }
-
-  // Validate data attributes
-  function validateDataAttributes(container: Element): boolean {
-    const type = container.getAttribute('data-layout');
-    if (!type || typeof type !== 'string') {
-      log('Invalid data-layout attribute', container);
-      return false;
-    }
+  function undo(container){
+    const stack = undoStacks.get(container);
+    if (!stack || !stack.length) return false;
+    const st = stack.pop();
+    container.innerHTML = st.innerHTML;
+    container.className = '';
+    container.classList.add(...st.classes);
+    for (const k of Object.keys(st.attrs)) container.setAttribute(k, st.attrs[k]);
     return true;
   }
 
-  // Default merge strategy
-  const defaultMergeStrategy: MergeStrategy = (base, update) => {
-    const result = { ...base };
-    for (const key in update) {
-      if (update[key] && typeof update[key] === 'object' && !Array.isArray(update[key])) {
-        result[key] = defaultMergeStrategy(base[key] || {}, update[key]);
+  function _ensureItemMetric(type, itemId){
+    const p = perf.get(type) || { latencies: [], builds:0, itemMetrics: new Map() };
+    if (!p.itemMetrics.has(itemId)) p.itemMetrics.set(itemId, { last:0, avg:0, count:0 });
+    perf.set(type,p);
+    return p.itemMetrics.get(itemId);
+  }
+
+  async function build(containerSelector, type, items = [], context = {}, mergeStrategy = (a,b)=>Object.assign(a,b)) {
+    const t0 = now();
+    const container = typeof containerSelector === 'string' ? document.querySelector(containerSelector) : containerSelector;
+    if (!container) throw createError('invalid container','INVALID_CONTAINER');
+    if (!type) type = container.getAttribute('data-layout') || 'default';
+    const l = layouts.get(type) || layouts.get('default');
+    if (!l) throw createError('no layout registered','NO_LAYOUT');
+    const entry = { type, container, items, context: Object.assign({}, context), timestamp: Date.now() };
+    let error = null, result;
+    const pRecord = perf.get(type) || { latencies: [], builds: 0, itemMetrics: new Map() };
+
+    try{
+      await _fireHooks(type,'beforeBuild',{ container, type, items, context });
+      _saveUndo(container);
+
+      // state sync: let layout read initial state and subscribe if configured
+      if (l.options.subscribesTo && Array.isArray(l.options.subscribesTo)) {
+        for (const key of l.options.subscribesTo) {
+          stateStore.subscribe(key, (val)=>{ try{ l.renderer(container, items, Object.assign({}, context, { stateKey:key, stateVal:val })); } catch(e){} });
+        }
+      }
+
+      // accessibility/theming/i18n
+      if (l.options.ariaLabel) container.setAttribute('aria-label', l.options.ariaLabel);
+      if (l.options.role) container.setAttribute('role', l.options.role);
+      if (l.options.cssClasses) container.classList.add(...(l.options.cssClasses||[]));
+      if (l.options.theme) Object.entries(l.options.theme||{}).forEach(([k,v]) => container.style.setProperty(`--${k}`, v));
+      if (l.options.lang) container.setAttribute('lang', l.options.lang);
+
+      // responsive
+      if (l.options.responsive && typeof window !== 'undefined') {
+        const mq = window.matchMedia('(max-width:768px)');
+        const apply = (m)=> container.classList.toggle('mobile-layout', m.matches || m);
+        const handler = (e)=> apply(e);
+        try { mq.addEventListener ? mq.addEventListener('change', handler) : mq.addListener(handler); apply(mq); } catch(_) {}
+      }
+
+      // items array normalization
+      const data = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
+      if (typeof l.options.validator === 'function') {
+        const ok = await l.options.validator(data);
+        if (!ok) throw createError('invalid items','INVALID_ITEMS');
+      }
+
+      // GPU rendering support
+      if (l.options.useGPU && l.options.canvasSelector) {
+        const canvas = typeof l.options.canvasSelector === 'string' ? container.querySelector(l.options.canvasSelector) : l.options.canvasSelector;
+        if (canvas) {
+          const bridge = createGPUBridge(canvas);
+          result = bridge.render(data, (ctx, itemsToDraw) => {
+            // default simple draw: if 2d, render text; if webgl, leave to custom renderer
+            if (ctx && ctx instanceof CanvasRenderingContext2D) {
+              ctx.font = '12px sans-serif';
+              itemsToDraw.forEach((it, i) => { const id = it.id || i; const start = now(); ctx.fillText(String(it.content || id), 6, 14 + i * 16); const dur = now() - start; const m = _ensureItemMetric(type, id); m.last = dur; m.count++; m.avg = (m.avg*(m.count-1)+dur)/m.count; });
+            } else {
+              try { if (typeof l.renderer === 'function') return l.renderer(canvas, itemsToDraw, context, { gpu:true, gl: ctx }); } catch(e){ console.error(e); }
+            }
+          });
+        } else {
+          result = await l.renderer(container, data, context);
+        }
       } else {
-        result[key] = update[key];
+        // Measure per-item render if renderer returns per-item callbacks or sync loop
+        const startBuild = now();
+        // If renderer is async and handles whole list, wrap to measure item timing when possible
+        if (l.options.measurePerItem) {
+          for (let i=0;i<data.length;i++){
+            const it = data[i];
+            const id = it.id ?? `${i}`;
+            const tItem0 = now();
+            // allow renderer to accept single item
+            try {
+              const r = await l.renderer(container, [it], Object.assign({}, context, { itemIndex:i, itemId:id }));
+              const tItem = now() - tItem0;
+              const m = _ensureItemMetric(type, id); m.last = tItem; m.count++; m.avg = (m.avg*(m.count-1)+tItem)/m.count;
+              if (r && r.rollback) { /* collect rollbacks if needed */ }
+            } catch (e) {
+              throw e;
+            }
+          }
+        } else {
+          result = await l.renderer(container, data, context);
+        }
+        pRecord.latencies.push(now() - startBuild);
+        pRecord.builds = (pRecord.builds||0)+1;
+        perf.set(type, pRecord);
+      }
+
+      await _fireHooks(type,'afterBuild',{ container, type, items: data, context, result, performance:{ duration: now()-t0 } });
+    } catch(e){
+      errorSafe(type, e, { container, items, context });
+      errorSafe('dispatch', e, {});
+      history.push(Object.assign(entry,{ error:e, performance:{ duration: now()-t0 } }));
+      if (history.length>LayoutEngine.historyCap) history.shift();
+      throw e;
+    } finally {
+      if (!entry.error) {
+        entry.performance = { duration: now() - t0 };
+        history.push(entry);
+        if (history.length > LayoutEngine.historyCap) history.shift();
       }
     }
     return result;
-  };
-
-  // Register a layout type
-  function register(type: string, renderer: LayoutRenderer, options: LayoutOptions = {}) {
-    if (typeof type !== 'string' || !type) throw createError('type must be a non-empty string', 'INVALID_TYPE');
-    if (typeof renderer !== 'function') throw createError('renderer must be a function', 'INVALID_RENDERER');
-    layouts.set(type, { renderer, options });
-    layoutMeta.set(type, { registered: Date.now(), options });
-    log('Registered layout:', type, options);
   }
 
-  // Lazy load a layout
-  async function lazyRegister(type: string, loader: () => Promise<{ renderer: LayoutRenderer; options: LayoutOptions }>) {
-    if (layouts.has(type)) return;
+  function errorSafe(type, e, ctx){
     try {
-      const { renderer, options } = await loader();
-      register(type, renderer, options);
-      log('Lazy-loaded layout:', type);
-    } catch (e) {
-      log('Lazy load failed:', type, e);
-      throw createError(`Failed to lazy load layout ${type}`, 'LAZY_LOAD_ERROR', { error: e });
-    }
+      _fireHooks(type,'error',Object.assign({ error:e }, ctx)).catch(()=>{});
+      try { const ev = new CustomEvent('layout:error',{ bubbles:true, detail:{ type, error:e } }); (document||{}).dispatchEvent && document.dispatchEvent(ev); } catch(_) {}
+      log('build error', e);
+    } catch(_) {}
   }
 
-  // Unregister a layout type
-  function unregister(type: string) {
-    layouts.delete(type);
-    layoutMeta.delete(type);
-    typeHooks.delete(type);
-    log('Unregistered layout:', type);
-  }
-
-  // Add a global hook
-  function addGlobalHook(phase: 'beforeBuild' | 'afterBuild' | 'error', callback: HookCallback) {
-    if (globalHooks[phase]) globalHooks[phase].push(callback);
-    return () => {
-      globalHooks[phase] = globalHooks[phase].filter(cb => cb !== callback);
-    };
-  }
-
-  // Add a type-specific hook
-  function addTypeHook(type: string, phase: 'beforeBuild' | 'afterBuild' | 'error', callback: HookCallback) {
-    if (!typeHooks.has(type)) typeHooks.set(type, { beforeBuild: [], afterBuild: [], error: [] });
-    typeHooks.get(type)![phase].push(callback);
-    return () => {
-      typeHooks.get(type)![phase] = typeHooks.get(type)![phase].filter(cb => cb !== callback);
-    };
-  }
-
-  // Fire hooks
-  async function fireHooks(type: string, phase: 'beforeBuild' | 'afterBuild' | 'error', payload: any) {
-    for (const cb of globalHooks[phase] || []) {
-      try { await cb(payload); } catch (e) { log(`Global ${phase} hook error`, e); }
-    }
-    if (typeHooks.has(type)) {
-      for (const cb of typeHooks.get(type)![phase] || []) {
-        try { await cb(payload); } catch (e) { log(`Type ${phase} hook error`, e); }
+  async function batchBuild(specs = [], { concurrency = 3 } = {}) {
+    if (!Array.isArray(specs)) throw createError('specs must be array','INVALID_ARG');
+    const results = {};
+    let i = 0;
+    const runners = new Array(Math.min(concurrency, specs.length)).fill(0).map(async () => {
+      while (i < specs.length) {
+        const idx = i++;
+        const s = specs[idx];
+        try { results[idx] = await build(s.containerSelector, s.type, s.items, s.context, s.mergeStrategy); } catch (e) { results[idx] = { error: e }; }
       }
-    }
-  }
-
-  // Validate layout items
-  async function validateItems(type: string, items: any[]): Promise<boolean> {
-    const layout = layouts.get(type);
-    if (!layout) return false;
-    if (layout.options.validator) {
-      try {
-        return await layout.options.validator(items);
-      } catch (e) {
-        log(`Item validation error for ${type}:`, e);
-        throw createError(`Invalid items for layout ${type}`, 'VALIDATION_ERROR', { error: e });
-      }
-    }
-    return Array.isArray(items);
-  }
-
-  // Render template
-  function renderTemplate(template: string, item: any): string {
-    return template.replace(/{{([^}]+)}}/g, (_, key) => {
-      const keys = key.trim().split('.');
-      let value = item;
-      for (const k of keys) {
-        value = value?.[k];
-        if (value === undefined) return '';
-      }
-      return value;
     });
-  }
-
-  // Save undo state
-  function saveUndoState(container: Element) {
-    if (!undoStack.has(container)) undoStack.set(container, []);
-    const stack = undoStack.get(container)!;
-    const state: UndoState = {
-      innerHTML: container.innerHTML,
-      classes: Array.from(container.classList),
-      attributes: Array.from(container.attributes).reduce((acc, attr) => {
-        acc[attr.name] = attr.value;
-        return acc;
-      }, {} as Record<string, string>)
-    };
-    stack.push(state);
-    if (stack.length > 10) stack.shift(); // Limit undo stack
-  }
-
-  // Undo last change
-  function undo(container: Element) {
-    if (!undoStack.has(container) || undoStack.get(container)!.length === 0) return;
-    const state = undoStack.get(container)!.pop()!;
-    container.innerHTML = state.innerHTML;
-    container.classList.add(...state.classes);
-    Object.entries(state.attributes).forEach(([name, value]) => {
-      container.setAttribute(name, value);
-    });
-    log('Undo performed on container');
-  }
-
-  // Serialize layout
-  function serialize(container: Element): string {
-    const type = container.getAttribute('data-layout') ?? '';
-    const items = Array.from(container.querySelectorAll('[data-item]')).map(el => ({
-      content: el.innerHTML
-    }));
-    return JSON.stringify({ type, items });
-  }
-
-  // Deserialize and build
-  async function deserialize(container: Element, serialized: string) {
-    const { type, items } = JSON.parse(serialized);
-    await build(container, type, items);
-  }
-
-  // Apply theme
-  function applyTheme(container: Element, theme: Record<string, string>) {
-    Object.entries(theme).forEach(([varName, value]) => {
-      container.style.setProperty(`--${varName}`, value);
-    });
-  }
-
-  // Virtual rendering (simple intersection observer based)
-  function virtualRender(container: Element, items: any[], renderer: LayoutRenderer, context: LayoutContext) {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          renderer(container, items, context);
-          observer.unobserve(container);
-        }
-      });
-    });
-    observer.observe(container);
-  }
-
-  // Responsive adaptation
-  function setupResponsive(container: Element, type: string) {
-    const layout = layouts.get(type);
-    if (layout?.options.responsive) {
-      const mediaQuery = window.matchMedia('(max-width: 768px)');
-      const handleChange = (e: MediaQueryListEvent) => {
-        if (e.matches) {
-          container.classList.add('mobile-layout');
-        } else {
-          container.classList.remove('mobile-layout');
-        }
-      };
-      mediaQuery.addEventListener('change', handleChange);
-      handleChange({ matches: mediaQuery.matches } as MediaQueryListEvent);
-    }
-  }
-
-  // Internationalization
-  function applyI18n(container: Element, lang: string) {
-    // Simple example: set lang attribute
-    container.setAttribute('lang', lang);
-    // Could integrate with i18n library if needed
-  }
-
-  // Build layout
-  async function build(
-    containerSelector: string | Element,
-    type: string,
-    items: any[] | string,
-    context: LayoutContext = {},
-    mergeStrategy: MergeStrategy = defaultMergeStrategy
-  ): Promise<any> {
-    const startTime = performance.now();
-    const container = typeof containerSelector === 'string'
-      ? document.querySelector(containerSelector)
-      : containerSelector;
-    if (!container) throw createError('Invalid container', 'INVALID_CONTAINER');
-    if (!validateDataAttributes(container)) throw createError('Invalid data attributes', 'INVALID_DATA_ATTRIBUTES');
-
-    let error: LayoutError | undefined;
-    let result: any;
-    const mergedContext = mergeStrategy({}, context);
-    const historyEntry: HistoryEntry = {
-      type,
-      container,
-      items,
-      context: mergedContext,
-      timestamp: Date.now(),
-    };
-
-    const buildFn = async () => {
-      saveUndoState(container);
-      try {
-        await fireHooks(type, 'beforeBuild', { container, type, items, context: mergedContext });
-        const layout = layouts.get(type) || layouts.get('default');
-        if (!layout) throw createError(`No layout registered for type "${type}"`, 'UNKNOWN_LAYOUT');
-
-        // Accessibility
-        if (layout.options.ariaLabel) container.setAttribute('aria-label', layout.options.ariaLabel);
-        if (layout.options.role) container.setAttribute('role', layout.options.role);
-        if (layout.options.cssClasses) container.classList.add(...layout.options.cssClasses);
-        if (layout.options.transition) container.style.transition = layout.options.transition;
-        if (layout.options.theme) applyTheme(container, layout.options.theme);
-        if (layout.options.lang) applyI18n(container, layout.options.lang);
-        setupResponsive(container, type);
-
-        // Items
-        const content = Array.isArray(items) ? items : JSON.parse(items);
-        if (!(await validateItems(type, content))) {
-          throw createError(`Invalid items for layout ${type}`, 'INVALID_ITEMS');
-        }
-
-        // Apply template if provided
-        if (layout.options.template) {
-          container.innerHTML = content
-            .map(item => renderTemplate(layout.options.template, item))
-            .join('');
-        } else {
-          if (layout.options.virtual) {
-            virtualRender(container, content, layout.renderer, mergedContext);
-          } else {
-            result = await layout.renderer(container, content, mergedContext);
-          }
-        }
-
-        await fireHooks(type, 'afterBuild', {
-          container,
-          type,
-          items: content,
-          context: mergedContext,
-          result,
-          performance: { duration: performance.now() - startTime },
-        });
-        log(`Built layout: ${type}`, { itemCount: content.length });
-
-        // Clean up
-        if (layout.options.cssClasses) {
-          container.classList.remove(...layout.options.cssClasses.filter(cls => !container.classList.contains(cls)));
-        }
-        if (layout.options.transition) container.style.transition = '';
-      } catch (e) {
-        error = e instanceof Error ? (e as LayoutError) : createError(String(e), 'BUILD_ERROR');
-        await fireHooks(type, 'error', { container, type, items, context: mergedContext, error });
-        container.dispatchEvent(new CustomEvent('layout:error', { bubbles: true, detail: { type, error } }));
-        log(`Error building layout ${type}:`, error);
-      }
-
-      historyEntry.error = error;
-      historyEntry.performance = { duration: performance.now() - startTime };
-      buildHistory.push(historyEntry);
-      if (buildHistory.length > historyCap) buildHistory.shift();
-      if (error) throw error;
-      return result;
-    };
-
-    if (layouts.get(type)?.options.debounce) {
-      return new Promise(resolve => {
-        debounce(buildFn, layouts.get(type)!.options.debounce!)(resolve);
-      });
-    }
-    return buildFn();
-  }
-
-  // Batch build
-  async function batchBuild(buildSpecs: Array<{ containerSelector: string | Element, type: string, items: any[] | string, context?: LayoutContext, mergeStrategy?: MergeStrategy }>) {
-    const startTime = performance.now();
-    const results: Record<string, any> = {};
-    for (const spec of buildSpecs) {
-      try {
-        results[spec.type] = await build(spec.containerSelector, spec.type, spec.items, spec.context, spec.mergeStrategy);
-      } catch (e) {
-        results[spec.type] = { error: e };
-      }
-    }
-    log('Batch build completed', { count: buildSpecs.length, duration: performance.now() - startTime });
+    await Promise.all(runners);
     return results;
   }
 
-  // Get filtered history
-  function getHistory(filter?: { type?: string; maxAge?: number; errorOnly?: boolean }): HistoryEntry[] {
-    let result = [...buildHistory];
-    if (filter?.type) {
-      result = result.filter(entry => entry.type === filter.type);
+  function getHistory(filter = {}) {
+    let r = history.slice();
+    if (filter.type) r = r.filter(h => h.type === filter.type);
+    if (filter.maxAge) r = r.filter(h => h.timestamp >= Date.now() - filter.maxAge);
+    if (filter.errorOnly) r = r.filter(h => !!h.error);
+    if (filter.predicate) r = r.filter(filter.predicate);
+    return r;
+  }
+  function clearHistory(){ history.length = 0; }
+  function setHistoryCap(cap){ if (typeof cap !== 'number' || cap<0) throw createError('invalid cap','INVALID_HISTORY_CAP'); LayoutEngine.historyCap = cap; while(history.length>LayoutEngine.historyCap) history.shift(); }
+
+  function getMeta(type){ return Object.assign({}, meta.get(type)||{}); }
+  function getAllMeta(){ return Object.fromEntries(Array.from(meta.entries()).map(([k,v])=>[k,Object.assign({},v)])); }
+  function getPerformanceMetrics(){
+    const out = {};
+    for (const [k,v] of perf.entries()){
+      const items = {};
+      for (const [id,m] of v.itemMetrics.entries()) items[id] = { last: m.last, avg: m.avg, count: m.count };
+      out[k] = { avgLatency: v.latencies.length ? v.latencies.reduce((a,b)=>a+b,0)/v.latencies.length : 0, builds: v.builds||0, items };
     }
-    if (filter?.maxAge) {
-      const cutoff = Date.now() - filter.maxAge;
-      result = result.filter(entry => entry.timestamp >= cutoff);
+    return out;
+  }
+
+  function setDebug(v=true){ LayoutEngine.debug = !!v; }
+  function attachStateAPI(api){ if (api && typeof api.subscribe==='function' && typeof api.get==='function') { stateStore.subscribe = api.subscribe; stateStore.get = api.get; stateStore.set = api.set; } }
+  // Storyboard exports
+  function registerStoryboardExport(name, steps){ return registerStoryboard(name, steps); }
+  function advanceStoryboardExport(name, ctx){ return advanceStoryboard(name, ctx); }
+  function resetStoryboardExport(name){ return resetStoryboard(name); }
+
+  // Auto-init existing containers and default layouts
+  function init(root=document){
+    try {
+      register('default', (container, items)=>{ container.innerHTML = items.map(i => `<div>${i.content ?? i}</div>`).join(''); }, { template: '<div>{{content}}</div>', responsive:true });
+      register('grid', (container, items)=>{ container.innerHTML = items.map(i=>`<div class="grid-item">${i.content??i}</div>`).join(''); }, { cssClasses:['layout-grid'], responsive:true, measurePerItem:true });
+      register('list', (container, items)=>{ container.innerHTML = `<ul>${items.map(i=>`<li>${i.content??i}</li>`).join('')}</ul>`; }, { role:'list', responsive:true });
+      const nodes = (root && root.querySelectorAll) ? root.querySelectorAll('[data-layout]') : [];
+      for (const n of Array.from(nodes)){
+        const t = n.getAttribute('data-layout') || 'default';
+        const items = Array.from(n.querySelectorAll('[data-item]')).map(el=>({ content: el.innerHTML, id: el.getAttribute('data-id')||undefined }));
+        build(n, t, items).catch(e=>log('init build err',e));
+      }
+    } catch(e){ log('init error', e); }
+  }
+  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', ()=>init(document));
+
+  // Web component
+  class LayoutElement extends HTMLElement {
+    connectedCallback(){
+      const type = this.getAttribute('data-layout') || 'default';
+      const items = Array.from(this.querySelectorAll('[data-item]')).map(el=>({ content: el.innerHTML, id: el.getAttribute('data-id')||undefined }));
+      // best-effort build
+      build(this, type, items).catch(e=>log('wc build err',e));
     }
-    if (filter?.errorOnly) {
-      result = result.filter(entry => !!entry.error);
-    }
-    return result;
   }
+  try { if (typeof customElements !== 'undefined' && !customElements.get('layout-element')) customElements.define('layout-element', LayoutElement); } catch(e){}
 
-  // Clear history
-  function clearHistory() {
-    buildHistory.length = 0;
-    log('Build history cleared');
-  }
-
-  // Set history cap
-  function setHistoryCap(cap: number) {
-    if (cap < 0) throw createError('History cap must be non-negative', 'INVALID_HISTORY_CAP');
-    historyCap = cap;
-    while (buildHistory.length > historyCap) buildHistory.shift();
-    log('History cap set:', historyCap);
-  }
-
-  // Set debug logging
-  function setDebug(val: boolean) {
-    debug = !!val;
-  }
-
-  // Async initialization
-  async function init(root: Document | Element = document): Promise<void> {
-    // Register default layouts
-    register(
-      'grid',
-      (container, items) => {
-        container.innerHTML = items.map(item => `<div class="grid-item">${item.content ?? item}</div>`).join('');
-        container.classList.add('grid');
-      },
-      { ariaLabel: 'Grid layout', role: 'grid', cssClasses: ['layout-grid'], transition: 'all 0.3s ease', template: '<div class="grid-item">{{content}}</div>', responsive: true, virtual: true, lang: 'en', theme: { color: 'blue' } }
-    );
-    register(
-      'list',
-      (container, items) => {
-        container.innerHTML = `<ul class="list">${items.map(item => `<li class="list-item">${item.content ?? item}</li>`).join('')}</ul>`;
-        container.setAttribute('role', 'list');
-      },
-      { ariaLabel: 'List layout', role: 'list', cssClasses: ['layout-list'], transition: 'all 0.3s ease', template: '<li class="list-item">{{content}}</li>', responsive: true, virtual: true, lang: 'en', theme: { color: 'green' } }
-    );
-    register(
-      'default',
-      (container, items) => {
-        container.innerHTML = items.map(item => `<div>${item.content ?? item}</div>`).join('');
-      },
-      { ariaLabel: 'Default layout', cssClasses: ['layout-default'], transition: 'all 0.3s ease', template: '<div>{{content}}</div>', responsive: true, virtual: true, lang: 'en', theme: { color: 'gray' } }
-    );
-
-    // Auto-bind data-layout containers
-    const containers = root.querySelectorAll('[data-layout]');
-    for (const container of Array.from(containers)) {
-      const type = container.getAttribute('data-layout') ?? 'default';
-      const items = Array.from(container.querySelectorAll('[data-item]')).map(el => ({
-        content: el.innerHTML,
-      }));
-      await build(container, type, items, {});
-    }
-
-    log('LayoutEngine initialized');
-  }
-
-  // Auto-init existing containers on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => init());
-
-// Web Component: <layout-element>
-class LayoutElement extends HTMLElement {
-  connectedCallback() {
-    const type = this.getAttribute('data-layout') ?? 'default';
-    const items = Array.from(this.querySelectorAll('[data-item]')).map(el => ({
-      content: el.innerHTML,
-    }));
-    LayoutEngine.build(this, type, items);
-  }
-}
-customElements.define('layout-element', LayoutElement);
-
-
-  return {
-    register,
-    lazyRegister,
-    unregister,
-    build,
-    batchBuild,
-    addGlobalHook,
-    addTypeHook,
-    setDebug,
-    getHistory,
-    clearHistory,
-    setHistoryCap,
-    getMeta: (type: string) => ({ ...(layoutMeta.get(type) ?? {}) }),
-    getAllMeta: () =>
-      Object.fromEntries(Array.from(layoutMeta.entries()).map(([k, v]) => [k, { ...v }])),
-    undo,
-    serialize,
-    deserialize
+  const LayoutEngine = {
+    register, lazyRegister, unregister, build, batchBuild,
+    addGlobalHook, addTypeHook, undo, serialize: (c)=>{ return JSON.stringify({ type: c.getAttribute && c.getAttribute('data-layout'), items: Array.from(c.querySelectorAll('[data-item]')).map(el=>({ html: el.innerHTML })) }); },
+    deserialize: async (c,s)=>deserialize(c,s),
+    getHistory, clearHistory, setHistoryCap, getMeta, getAllMeta, getPerformanceMetrics,
+    // state & meta-context
+    stateSet: (k,v)=>stateStore.set(k,v), stateGet: (k)=>stateStore.get(k), stateSubscribe: (k,cb)=>stateStore.subscribe(k,cb),
+    publishMeta, onMeta, readMeta,
+    // storyboards
+    registerStoryboard: registerStoryboardExport, advanceStoryboard: advanceStoryboardExport, resetStoryboard: resetStoryboardExport,
+    // gpu bridge helpers
+    createGPUBridge,
+    // flags
+    debug: false,
+    historyCap: historyCap
   };
+  return LayoutEngine;
 })();
 
 export default LayoutEngine;

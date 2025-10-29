@@ -1,408 +1,320 @@
-/**
- * narrativeEngine.js - Ultra-Enhanced Narrative/Progression Engine (Grok + Copilot)
- * Features:
- * - Chapter/arc dependencies (with circular dependency detection)
- * - Condition/completion validation (with custom validator)
- * - Global hooks (before/after/error, unregisterable)
- * - Performance monitoring (per operation, batch)
- * - Batch tracking (async, concurrency)
- * - Structured error events (for integrations)
- * - Progress reset (full, partial, per chapter/arc)
- * - Introspection (list/filter chapters/arcs, dependencies, tags)
- * - History: filterable, capped, error, predicate, time
- * - Debug/trace logging
- * - Maintains all previous features
- */
-
-/**
- * @typedef {Object} NarrativeOptions
- * @property {string[]} [dependencies]
- * @property {Function} [validator]
- * @property {string} [ariaLabel]
- * @property {string[]} [tags]
- * @property {string} [description]
- */
-
-/**
- * @typedef {Object} HistoryEntry
- * @property {'chapter'|'arc'} type
- * @property {string} name
- * @property {Object} payload
- * @property {number} time
- * @property {NarrativeError} [error]
- * @property {{duration: number}} [performance]
- * @property {string[]} [tags]
- */
-
-/**
- * @typedef {Object} NarrativeError
- * @property {string} message
- * @property {string} code
- * @property {any} [details]
- * @property {string} [type]
- * @property {string} [name]
- */
-
 const NarrativeEngine = (() => {
-  const chapters = new Map();
-  const arcs = new Map();
-  const hooks = new Map();
+  const chapters = new Map(); // name -> { condition, entered, options, registered, meta, active }
+  const arcs = new Map(); // name -> { completion, completed, options, registered, meta, active }
+  const hooks = new Map(); // key "chapter:name" or "arc:name" -> { before:[], after:[], error:[] }
   const globalHooks = { before: [], after: [], error: [] };
-  const progressHistory = [];
+  const history = []; // structured history entries
+  const perf = new Map(); // key -> { latencies:[], count }
+  const metaContext = new Map(); // topic -> value
+  const metaSubs = new Map(); // topic -> Set(cb)
+  const transactions = []; // active txs
+  const txHistory = []; // committed txs for undo/redo
+  let txPointer = txHistory.length - 1;
   let debug = false;
-  let maxHistoryLength = 300;
+  let historyCap = 300;
 
-  // Debug logger
-  const log = (...args) => { if (debug) console.log('[NarrativeEngine]', ...args); };
-  const trace = (...args) => { if (debug) console.trace('[NarrativeEngine]', ...args); };
+  // adapters (opt-in)
+  let layoutAPI = null; // { build(container,type,items,ctx) }
+  let gpuBridge = null; // { render(canvas, items, drawFn) }
+  let animator = null; // { animate(el, keyframes, opts) } or use requestAnimationFrame fallback
 
-  // Structured error
-  function createError(message, code, details = {}) {
-    const error = new Error(message);
-    error.code = code;
-    error.details = details;
-    return error;
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const log = (...a) => { if (debug) try { console.log('[NarrativeEngine]', ...a); } catch (_) {} };
+
+  function createError(m, c, d) { const e = new Error(m); e.code = c; e.details = d; return e; }
+
+  function _recordPerf(key, ms) {
+    if (!perf.has(key)) perf.set(key, { latencies: [], count: 0 });
+    const p = perf.get(key);
+    p.latencies.push(ms); if (p.latencies.length > 200) p.latencies.shift();
+    p.count = (p.count || 0) + 1;
   }
 
-  // Validate dependency graph
-  function validateDependencyGraph() {
-    function visit(type, name, visited, recStack) {
-      const registry = type === 'chapter' ? chapters : arcs;
-      if (!registry.has(name)) return false;
-      if (recStack.has(`${type}:${name}`)) return true;
-      if (visited.has(`${type}:${name}`)) return false;
-      visited.add(`${type}:${name}`);
-      recStack.add(`${type}:${name}`);
+  function _pushHistory(entry) {
+    history.push(entry);
+    while (history.length > historyCap) history.shift();
+  }
 
-      const opts = registry.get(name).options || {};
-      if (opts.dependencies) {
-        for (const dep of opts.dependencies) {
-          const [depType, depName] = dep.split(':');
-          if (visit(depType, depName, visited, recStack)) return true;
-        }
+  // transactions
+  function beginTransaction(label = '') {
+    const tx = { id: `tx-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, ops: [], label, createdAt: Date.now(), committed: false };
+    transactions.push(tx);
+    return tx.id;
+  }
+  function commitTransaction() {
+    if (!transactions.length) throw createError('no active transaction','NO_TX');
+    const tx = transactions.pop();
+    tx.committed = true;
+    txHistory.splice(txPointer + 1);
+    txHistory.push(tx);
+    txPointer = txHistory.length - 1;
+    return tx.id;
+  }
+  function rollbackTransaction() {
+    if (!transactions.length) throw createError('no active transaction','NO_TX');
+    const tx = transactions.pop();
+    for (let i = tx.ops.length - 1; i >= 0; i--) {
+      const op = tx.ops[i];
+      try {
+        if (op.type === 'enterChapter') {
+          const c = chapters.get(op.name); if (c) c.entered = op.prev;
+        } else if (op.type === 'completeArc') {
+          const a = arcs.get(op.name); if (a) a.completed = op.prev;
+        } else if (op.type === 'registerChapter') { chapters.delete(op.name); }
+        else if (op.type === 'registerArc') { arcs.delete(op.name); }
+      } catch (e) { log('rollback op failed', e); }
+    }
+    return tx.id;
+  }
+
+  async function undo(steps = 1) {
+    let undone = 0;
+    while (undone < steps && txPointer >= 0) {
+      const tx = txHistory[txPointer];
+      transactions.push({ ops: tx.ops.slice() });
+      rollbackTransaction();
+      txPointer--;
+      undone++;
+    }
+    return { undone };
+  }
+  async function redo(steps = 1) {
+    let redone = 0;
+    while (redone < steps && txPointer < txHistory.length - 1) {
+      const next = txHistory[txPointer + 1];
+      for (const op of next.ops) {
+        try {
+          if (op.type === 'registerChapter') chapters.set(op.name, op.payload);
+          else if (op.type === 'registerArc') arcs.set(op.name, op.payload);
+          else if (op.type === 'enterChapter') { const c = chapters.get(op.name); if (c) c.entered = op.new; }
+          else if (op.type === 'completeArc') { const a = arcs.get(op.name); if (a) a.completed = op.new; }
+        } catch (e) { log('redo op failed', e); }
       }
-      recStack.delete(`${type}:${name}`);
-      return false;
+      txPointer = Math.min(txPointer + 1, txHistory.length - 1);
+      redone++;
     }
-
-    for (const [name] of chapters.entries()) {
-      if (visit('chapter', name, new Set(), new Set()))
-        throw createError(`Circular chapter dependency detected for ${name}`, 'CIRCULAR_DEP');
-    }
-    for (const [name] of arcs.entries()) {
-      if (visit('arc', name, new Set(), new Set()))
-        throw createError(`Circular arc dependency detected for ${name}`, 'CIRCULAR_DEP');
-    }
-    return true;
+    return { redone };
   }
 
-  // Validate custom condition
-  async function validateCondition(name, type, condition, payload) {
-    const meta = type === 'chapter' ? chapters.get(name) : arcs.get(name);
-    if (meta?.options?.validator) {
-      const valid = await meta.options.validator(payload).catch(e => {
-        throw createError(`Validator failed for ${type} ${name}`, 'VALIDATOR_ERROR', { error: e });
-      });
-      if (!valid) throw createError(`Invalid ${type} condition for ${name}`, 'INVALID_CONDITION', { payload });
-    }
-    return true;
-  }
-
-  // Check static dependencies before triggering logic
-  function checkDependencies(name, type, options) {
-    if (!options?.dependencies) return;
-    for (const dep of options.dependencies) {
-      const [depType, depName] = dep.split(':');
-      const registry = depType === 'chapter' ? chapters : arcs;
-      const depMeta = registry.get(depName);
-      if (!depMeta || !(depMeta.entered || depMeta.completed)) {
-        throw createError(`Missing dependency ${dep} for ${type} ${name}`, 'MISSING_DEPENDENCY', { type, name, dep });
-      }
-    }
-  }
-
-  // Register functions
+  // register
   function registerChapter(name, condition, options = {}, meta = {}) {
-    if (typeof name !== 'string' || !name) throw createError('Chapter name must be non-empty string', 'INVALID_NAME');
-    if (typeof condition !== 'function') throw createError('Chapter condition must be a function', 'INVALID_CONDITION');
-    if (chapters.has(name)) log(`Overwriting chapter: ${name}`);
-    chapters.set(name, { condition, entered: false, options, registered: Date.now(), meta });
-    validateDependencyGraph();
-    log('Registered chapter:', name, options, meta);
+    if (!name || typeof condition !== 'function') throw createError('invalid chapter', 'INVALID_ARG');
+    const entry = { condition, entered: false, options, registered: Date.now(), meta, active: options.active !== false };
+    chapters.set(name, entry);
+    if (transactions.length) transactions[transactions.length - 1].ops.push({ type: 'registerChapter', name, payload: entry });
+    return () => unregisterChapter(name);
   }
+  function unregisterChapter(name) { chapters.delete(name); hooks.delete(`chapter:${name}`); }
 
   function registerArc(name, completion, options = {}, meta = {}) {
-    if (typeof name !== 'string' || !name) throw createError('Arc name must be non-empty string', 'INVALID_NAME');
-    if (typeof completion !== 'function') throw createError('Arc completion must be a function', 'INVALID_COMPLETION');
-    if (arcs.has(name)) log(`Overwriting arc: ${name}`);
-    arcs.set(name, { completion, completed: false, options, registered: Date.now(), meta });
-    validateDependencyGraph();
-    log('Registered arc:', name, options, meta);
+    if (!name || typeof completion !== 'function') throw createError('invalid arc', 'INVALID_ARG');
+    const entry = { completion, completed: false, options, registered: Date.now(), meta, active: options.active !== false };
+    arcs.set(name, entry);
+    if (transactions.length) transactions[transactions.length - 1].ops.push({ type: 'registerArc', name, payload: entry });
+    return () => unregisterArc(name);
   }
+  function unregisterArc(name) { arcs.delete(name); hooks.delete(`arc:${name}`); }
 
-  // Hook system
-  function addHook(type, name, phase, callback) {
+  // hooks
+  function addHook(type, name, phase, cb) {
     const key = `${type}:${name}`;
     if (!hooks.has(key)) hooks.set(key, { before: [], after: [], error: [] });
-    hooks.get(key)[phase].push(callback);
-    return () => { hooks.get(key)[phase] = hooks.get(key)[phase].filter(cb => cb !== callback); };
+    const bucket = hooks.get(key);
+    if (!bucket[phase]) throw createError('invalid phase', 'INVALID_PHASE');
+    bucket[phase].push(cb);
+    return () => { bucket[phase] = bucket[phase].filter(x => x !== cb); };
+  }
+  function addGlobalHook(phase, cb) {
+    if (!globalHooks[phase]) throw createError('invalid phase', 'INVALID_PHASE');
+    globalHooks[phase].push(cb);
+    return () => { globalHooks[phase] = globalHooks[phase].filter(x => x !== cb); };
   }
 
-  function addGlobalHook(phase, callback) {
-    if (globalHooks[phase]) globalHooks[phase].push(callback);
-    return () => { globalHooks[phase] = globalHooks[phase].filter(cb => cb !== callback); };
-  }
-
-  async function fireHooks(type, name, phase, payload) {
-    for (const cb of globalHooks[phase]) {
-      try { await cb({ type, name, payload }); } catch (e) { log(`Global ${phase} hook error`, e); }
-    }
+  async function _fireHooks(type, name, phase, payload) {
+    for (const g of (globalHooks[phase] || [])) try { await Promise.resolve(g({ type, name, payload })); } catch (e) { log('global hook error', e); }
     const key = `${type}:${name}`;
-    if (hooks.has(key)) {
-      for (const cb of hooks.get(key)[phase] || []) {
-        try { await cb(payload); } catch (e) { log(`Hook error for ${type} ${name} (${phase})`, e); }
-      }
-    }
+    const set = hooks.get(key);
+    if (!set || !set[phase]) return;
+    for (const cb of set[phase].slice()) try { await Promise.resolve(cb(payload)); } catch (e) { log('hook error', e); }
   }
 
-  // Event dispatcher (DOM-safe)
-  function dispatchEventSafe(type, detail) {
-    if (typeof document !== 'undefined' && document.dispatchEvent) {
-      document.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
-    }
-    log('Event:', type, detail);
+  // meta-context
+  function publishMeta(topic, payload) {
+  const prev = metaContext.has(topic) ? metaContext.get(topic) : undefined;
+  metaContext.set(topic, payload);
+
+  const subs = metaSubs.get(topic) || new Set();
+  for (const cb of Array.from(subs)) {
+    try { cb(payload, prev); }
+    catch (e) { log('meta sub error', e); }
   }
 
-  // Core tracking logic
+  if (transactions.length)
+    transactions[transactions.length - 1].ops.push({ type: 'metaPublish', topic, prev, new: payload });
+}
+
+  // adapters attach
+  function attachLayoutAPI(api) { layoutAPI = api; return () => { layoutAPI = null; }; }
+  function attachGPUBridge(api) { gpuBridge = api; return () => { gpuBridge = null; }; }
+  function attachAnimator(api) { animator = api; return () => { animator = null; }; }
+
+  // rendering helper: if layoutAPI attached use it, else try simple DOM insertion
+  async function render(container, type, items = [], context = {}) {
+    if (!container) return;
+    if (layoutAPI && typeof layoutAPI.build === 'function') return layoutAPI.build(container, type, items, context);
+    // fallback simple rendering
+    try {
+      container.innerHTML = items.map(i => `<div class="n-item">${i.content ?? i}</div>`).join('');
+    } catch (e) { log('fallback render failed', e); }
+  }
+
+  // GPU rendering helper
+  function gpuRender(canvas, items, drawFn) {
+    if (gpuBridge && typeof gpuBridge.render === 'function') return gpuBridge.render(canvas, items, drawFn);
+    // fallback: if 2D context available
+    try {
+      const ctx = canvas.getContext && (canvas.getContext('2d') || canvas.getContext('webgl') || canvas.getContext('webgl2'));
+      if (ctx && typeof drawFn === 'function') return drawFn(ctx, items);
+    } catch (e) { log('gpu fallback error', e); }
+  }
+
+  // track single payload: evaluate chapters then arcs, with hooks, history, perf, transactions and meta notifications
   async function track(payload = {}) {
-    const startTime = performance.now();
+    const start = now();
     const results = { chapters: [], arcs: [] };
-
-    // Chapters
-    for (const [name, chapter] of chapters.entries()) {
-      if (!chapter.entered) {
-        try {
-          await validateCondition(name, 'chapter', chapter.condition, payload);
-          const shouldEnter = await chapter.condition(payload);
-          if (shouldEnter) {
-            checkDependencies(name, 'chapter', chapter.options);
-            await fireHooks('chapter', name, 'before', { name, payload });
-            if (chapter.options.ariaLabel) document.body?.setAttribute?.('aria-label', chapter.options.ariaLabel);
-            chapter.entered = true;
-            dispatchEventSafe('narrative:chapter:enter', { name, payload });
-            await fireHooks('chapter', name, 'after', { name, payload });
-            log(`Chapter entered: ${name}`);
-            progressHistory.push({
-              type: 'chapter',
-              name,
-              payload,
-              time: Date.now(),
-              error: null,
-              performance: { duration: performance.now() - startTime },
-              tags: chapter.options.tags || chapter.meta?.tags || []
-            });
-            if (chapter.options.ariaLabel) document.body?.removeAttribute?.('aria-label');
-            results.chapters.push(name);
-          }
-        } catch (e) {
-          const error = createError(`Error entering chapter ${name}`, 'CHAPTER_ERROR', { error: e });
-          await fireHooks('chapter', name, 'error', { name, payload, error });
-          for (const cb of globalHooks.error) try { await cb({ type: 'chapter', name, error }); } catch {}
-          dispatchEventSafe('narrative:error', { type: 'chapter', name, error });
-          progressHistory.push({
-            type: 'chapter',
-            name,
-            payload,
-            time: Date.now(),
-            error,
-            performance: { duration: performance.now() - startTime },
-            tags: chapter.options.tags || chapter.meta?.tags || []
-          });
-        }
-      }
-    }
-
-    // Arcs
-    for (const [name, arc] of arcs.entries()) {
-      if (!arc.completed) {
-        try {
-          await validateCondition(name, 'arc', arc.completion, payload);
-          const shouldComplete = await arc.completion(payload);
-          if (shouldComplete) {
-            checkDependencies(name, 'arc', arc.options);
-            await fireHooks('arc', name, 'before', { name, payload });
-            if (arc.options.ariaLabel) document.body?.setAttribute?.('aria-label', arc.options.ariaLabel);
-            arc.completed = true;
-            dispatchEventSafe('narrative:arc:complete', { name, payload });
-            await fireHooks('arc', name, 'after', { name, payload });
-            log(`Arc completed: ${name}`);
-            progressHistory.push({
-              type: 'arc',
-              name,
-              payload,
-              time: Date.now(),
-              error: null,
-              performance: { duration: performance.now() - startTime },
-              tags: arc.options.tags || arc.meta?.tags || []
-            });
-            if (arc.options.ariaLabel) document.body?.removeAttribute?.('aria-label');
-            results.arcs.push(name);
-          }
-        } catch (e) {
-          const error = createError(`Error completing arc ${name}`, 'ARC_ERROR', { error: e });
-          await fireHooks('arc', name, 'error', { name, payload, error });
-          for (const cb of globalHooks.error) try { await cb({ type: 'arc', name, error }); } catch {}
-          dispatchEventSafe('narrative:error', { type: 'arc', name, error });
-          progressHistory.push({
-            type: 'arc',
-            name,
-            payload,
-            time: Date.now(),
-            error,
-            performance: { duration: performance.now() - startTime },
-            tags: arc.options.tags || arc.meta?.tags || []
-          });
-        }
-      }
-    }
-
-    while (progressHistory.length > maxHistoryLength) progressHistory.shift();
-    return results;
-  }
-
-  // Batch track with concurrency control
-  async function batchTrack(payloads, { concurrency = 5 } = {}) {
-    const startTime = performance.now();
-    const results = [];
-    let idx = 0, active = 0;
-    const queue = new Set();
-
-    async function run(payload) {
-      active++;
+    for (const [name, c] of chapters.entries()) {
+      if (!c.active || c.entered) continue;
       try {
-        results.push(await track(payload));
-      } catch (e) {
-        results.push({ error: e });
-      } finally {
-        active--;
-        queue.delete(run);
+        for (const g of globalHooks.before) try { await Promise.resolve(g({ type: 'chapter', name, payload })); } catch (e) {}
+        await _fireHooks('chapter', name, 'before', { name, payload });
+        const t0 = now();
+        const ok = await Promise.resolve(c.condition(payload));
+        const dur = now() - t0;
+        _recordPerf(`chapter:${name}`, dur);
+        if (ok) {
+          if (transactions.length) transactions[transactions.length - 1].ops.push({ type: 'enterChapter', name, prev: c.entered, new: true });
+          c.entered = true;
+          await _fireHooks('chapter', name, 'after', { name, payload });
+          for (const g of globalHooks.after) try { await Promise.resolve(g({ type: 'chapter', name, payload })); } catch (e) {}
+          results.chapters.push(name);
+          _pushHistory({ type: 'chapter', name, payload, time: Date.now(), error: null, performance: { duration: dur }, tags: c.options.tags || c.meta?.tags || [] });
+          if (c.options.publishMeta) publishMeta(c.options.publishMeta.topic || `chapter:${name}`, { name, payload });
+          if (c.options.render && c.options.container) await render(c.options.container, c.options.renderType || 'default', c.options.renderItems || [], { source: 'chapter', name, payload });
+        }
+      } catch (err) {
+        const e = createError(`chapter ${name} error`, 'CHAPTER_ERROR', { error: err });
+        await _fireHooks('chapter', name, 'error', { name, payload, error: e });
+        for (const g of globalHooks.error) try { await Promise.resolve(g({ type: 'chapter', name, error: e })); } catch (ee) {}
+        _pushHistory({ type: 'chapter', name, payload, time: Date.now(), error: e, performance: { duration: now() - start } });
       }
     }
 
-    while (idx < payloads.length) {
-      while (active < concurrency && idx < payloads.length) {
-        const payload = payloads[idx++];
-        const task = run(payload);
-        queue.add(task);
-        task.finally(() => queue.delete(task));
+    for (const [name, a] of arcs.entries()) {
+      if (!a.active || a.completed) continue;
+      try {
+        for (const g of globalHooks.before) try { await Promise.resolve(g({ type: 'arc', name, payload })); } catch (e) {}
+        await _fireHooks('arc', name, 'before', { name, payload });
+        const t0 = now();
+        const ok = await Promise.resolve(a.completion(payload));
+        const dur = now() - t0;
+        _recordPerf(`arc:${name}`, dur);
+        if (ok) {
+          if (transactions.length) transactions[transactions.length - 1].ops.push({ type: 'completeArc', name, prev: a.completed, new: true });
+          a.completed = true;
+          await _fireHooks('arc', name, 'after', { name, payload });
+          for (const g of globalHooks.after) try { await Promise.resolve(g({ type: 'arc', name, payload })); } catch (e) {}
+          results.arcs.push(name);
+          _pushHistory({ type: 'arc', name, payload, time: Date.now(), error: null, performance: { duration: dur }, tags: a.options.tags || a.meta?.tags || [] });
+          if (a.options.publishMeta) publishMeta(a.options.publishMeta.topic || `arc:${name}`, { name, payload });
+          if (a.options.render && a.options.container) await render(a.options.container, a.options.renderType || 'default', a.options.renderItems || [], { source: 'arc', name, payload });
+          if (a.options.animate && a.options.container) {
+            try {
+              if (animator && typeof animator.animate === 'function') animator.animate(a.options.container, a.options.animate.keyframes || [], a.options.animate.opts || {});
+              else if (a.options.animate.keyframes && a.options.container.animate) a.options.container.animate(a.options.animate.keyframes, a.options.animate.opts || {});
+            } catch (e) { log('animate failed', e); }
+          }
+          if (a.options.gpu && a.options.canvas) {
+            try { gpuRender(a.options.canvas, a.options.gpu.items || [], a.options.gpu.draw); } catch (e) { log('gpu render err', e); }
+          }
+        }
+      } catch (err) {
+        const e = createError(`arc ${name} error`, 'ARC_ERROR', { error: err });
+        await _fireHooks('arc', name, 'error', { name, payload, error: e });
+        for (const g of globalHooks.error) try { await Promise.resolve(g({ type: 'arc', name, error: e })); } catch (ee) {}
+        _pushHistory({ type: 'arc', name, payload, time: Date.now(), error: e, performance: { duration: now() - start } });
       }
-      if (queue.size > 0) await Promise.race(queue);
     }
 
-    await Promise.all(queue);
-    dispatchEventSafe('narrative:batchTracked', { count: payloads.length, duration: performance.now() - startTime });
-    log('Batch track completed', { count: payloads.length, duration: performance.now() - startTime });
+    _recordPerf('track', now() - start);
     return results;
   }
 
-  // Reset progress
-  function resetProgress(type, name) {
+  // batchTrack with concurrency
+  async function batchTrack(payloads = [], { concurrency = 5, stopOnError = false } = {}) {
+    if (!Array.isArray(payloads)) throw createError('payloads must be array', 'INVALID_ARG');
+    const results = [];
+    let i = 0;
+    const runners = new Array(Math.min(concurrency, payloads.length)).fill(0).map(async () => {
+      while (i < payloads.length) {
+        const idx = i++;
+        try { results[idx] = await track(payloads[idx]); } catch (e) { results[idx] = { error: e }; if (stopOnError) throw e; }
+      }
+    });
+    await Promise.all(runners);
+    return results;
+  }
+
+  function resetProgress(type = null, name = null) {
     if (!type) {
-      chapters.forEach(ch => ch.entered = false);
-      arcs.forEach(ar => ar.completed = false);
-      log('All progress reset');
-    } else if (type === 'chapter' && name && chapters.has(name)) {
-      chapters.get(name).entered = false;
-      log(`Chapter reset: ${name}`);
-    } else if (type === 'arc' && name && arcs.has(name)) {
-      arcs.get(name).completed = false;
-      log(`Arc reset: ${name}`);
-    } else {
-      throw createError('Invalid reset parameters', 'INVALID_RESET', { type, name });
+      for (const c of chapters.values()) c.entered = false;
+      for (const a of arcs.values()) a.completed = false;
+      return;
     }
+    if (type === 'chapter') {
+      const c = chapters.get(name); if (!c) throw createError('chapter not found','NOT_FOUND'); c.entered = false;
+    } else if (type === 'arc') {
+      const a = arcs.get(name); if (!a) throw createError('arc not found','NOT_FOUND'); a.completed = false;
+    } else throw createError('invalid type','INVALID_ARG');
   }
 
-  // History access
   function getHistory(filter = {}) {
-    let result = [...progressHistory];
-    if (filter.type) result = result.filter(e => e.type === filter.type);
-    if (filter.name) result = result.filter(e => e.name === filter.name);
-    if (filter.maxAge) result = result.filter(e => e.time >= Date.now() - filter.maxAge);
-    if (filter.errorOnly) result = result.filter(e => !!e.error);
-    if (filter.tag) result = result.filter(e => e.tags?.includes(filter.tag));
-    if (filter.predicate) result = result.filter(filter.predicate);
-    return result;
+    let r = history.slice();
+    if (filter.type) r = r.filter(h => h.type === filter.type);
+    if (filter.name) r = r.filter(h => h.name === filter.name);
+    if (filter.maxAge) r = r.filter(h => h.time >= Date.now() - filter.maxAge);
+    if (filter.errorOnly) r = r.filter(h => !!h.error);
+    if (filter.tag) r = r.filter(h => h.tags && h.tags.includes(filter.tag));
+    if (filter.predicate) r = r.filter(filter.predicate);
+    return r;
+  }
+  function clearHistory() { history.length = 0; }
+  function setHistoryCap(cap) { historyCap = Math.max(0, cap); while (history.length > historyCap) history.shift(); }
+
+  // introspection
+  function listChapters() { return Array.from(chapters.keys()); }
+  function listArcs() { return Array.from(arcs.keys()); }
+  function getChapters() { return Object.fromEntries(chapters); }
+  function getArcs() { return Object.fromEntries(arcs); }
+  function getPerformanceMetrics() {
+    const out = {};
+    for (const [k, v] of perf.entries()) out[k] = { avg: v.latencies.length ? v.latencies.reduce((a,b)=>a+b,0)/v.latencies.length : 0, count: v.count || 0 };
+    return out;
   }
 
-  function clearHistory() { progressHistory.length = 0; log('Progress history cleared'); }
-
-  function setHistoryCap(cap) {
-    maxHistoryLength = Math.max(0, cap);
-    while (progressHistory.length > maxHistoryLength) progressHistory.shift();
-    log('History cap set:', maxHistoryLength);
-  }
-
-  // Debug toggle
-  const setDebug = val => { debug = !!val; };
-
-  // Introspection
-  const getChapters = () => Object.fromEntries(chapters);
-  const getArcs = () => Object.fromEntries(arcs);
-  const listChapters = () => Array.from(chapters.keys());
-  const listArcs = () => Array.from(arcs.keys());
-  const filterChaptersByTag = tag => [...chapters.entries()].filter(([, m]) => m.options.tags?.includes(tag)).map(([n]) => n);
-  const filterArcsByTag = tag => [...arcs.entries()].filter(([, m]) => m.options.tags?.includes(tag)).map(([n]) => n);
-  const validateAllChapters = () => [...chapters.entries()].map(([n, m]) => ({ name: n, valid: !m.options.validator || m.options.validator(n) }));
-  const validateAllArcs = () => [...arcs.entries()].map(([n, m]) => ({ name: n, valid: !m.options.validator || m.options.validator(n) }));
-
-  // Initialization
-  function init() {
-    registerChapter('intro', p => p.event === 'page_load', {
-      ariaLabel: 'Introduction chapter',
-      dependencies: [],
-      tags: ['default'],
-      description: 'Intro to experience.'
-    });
-    registerArc('exploration', p => p.scrollDepth > 50, {
-      ariaLabel: 'Exploration arc',
-      dependencies: ['chapter:intro'],
-      tags: ['default'],
-      description: 'Exploration phase.'
-    });
-    if (typeof window !== 'undefined') {
-      window.addEventListener('load', () => track({ event: 'page_load' }));
-      window.addEventListener('scroll', () => track({ scrollDepth: (window.scrollY / document.body.scrollHeight) * 100 }));
-    }
-    log('NarrativeEngine initialized');
-  }
-
-  if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  function setDebug(v = true) { debug = !!v; }
+  function attachLayoutAPI(api) { layoutAPI = api; return () => { layoutAPI = null; }; }
+  function attachGPUBridge(api) { gpuBridge = api; return () => { gpuBridge = null; }; }
+  function attachAnimator(api) { animator = api; return () => { animator = null; }; }
+  function publishMeta(topic, payload) { publishMeta(topic, payload); } // alias
+  function onMeta(topic, cb) { return onMeta(topic, cb); } // alias
 
   return {
-    registerChapter,
-    registerArc,
-    addHook,
-    addGlobalHook,
-    track,
-    batchTrack,
-    resetProgress,
-    getChapters,
-    getArcs,
-    listChapters,
-    listArcs,
-    filterChaptersByTag,
-    filterArcsByTag,
-    validateAllChapters,
-    validateAllArcs,
-    getHistory,
-    clearHistory,
-    setDebug,
-    setHistoryCap
+    registerChapter, unregisterChapter, registerArc, unregisterArc,
+    addHook, addGlobalHook, track, batchTrack, resetProgress,
+    listChapters, listArcs, getChapters, getArcs, getHistory, clearHistory, setHistoryCap,
+    beginTransaction, commitTransaction, rollbackTransaction, undo, redo, txHistory,
+    attachLayoutAPI, attachGPUBridge, attachAnimator, publishMeta, onMeta, readMeta,
+    getPerformanceMetrics, setDebug
   };
 })();
-
 export default NarrativeEngine;

@@ -1,381 +1,310 @@
-/**
- * symbolEngine.js - Ultra-Enhanced Symbolic Pattern Engine (Grok + Copilot)
- * Features:
- * - Priority, metadata, validator, matcher per pattern
- * - Pattern activation/deactivation (per-pattern, global)
- * - Global and per-pattern hooks (before/after/error, unregisterable)
- * - Batch apply: async, concurrency, error handling, per-pattern/context results
- * - History: structured, filterable, capped, errors, durations, tags
- * - Introspection: pattern listing, priorities, tags, validation
- * - Structured error events (DOM)
- * - Debug/trace logging
- * - Maintains all previous features
- */
-
-/**
- * @typedef {Object} SymbolOptions
- * @property {number} [priority=0]
- * @property {Function} [matcher]
- * @property {Function} [validator]
- * @property {boolean} [active=true]
- * @property {string[]} [tags]
- * @property {string} [description]
- */
-
-/**
- * @typedef {Object} PatternMeta
- * @property {Function} logic
- * @property {SymbolOptions} options
- * @property {boolean} active
- * @property {number} registered
- * @property {Object} [meta]
- */
-
-/**
- * @typedef {Object} HistoryEntry
- * @property {string} pattern
- * @property {Object} context
- * @property {any} [result]
- * @property {number} time
- * @property {SymbolError} [error]
- * @property {{duration: number}} [performance]
- * @property {string[]} [tags]
- */
-
-/**
- * @typedef {Object} SymbolError
- * @property {string} message
- * @property {string} code
- * @property {any} [details]
- * @property {string} [pattern]
- * @property {Object} [context]
- */
-
 const SymbolEngine = (() => {
-  const symbols = new Map();
-  const hooks = new Map();
+  // core stores
+  const patterns = new Map(); // pattern -> { logic, options, active, registered, meta }
+  const patternHooks = new Map(); // pattern -> { before:[], after:[], error:[] }
   const globalHooks = { before: [], after: [], error: [] };
-  const applyHistory = [];
-  let active = true;
+  const history = []; // structured apply history
+  const metrics = new Map(); // pattern -> { count, avgTime, errors, itemMetrics: Map(itemId->{last,avg,count}) }
   let debug = false;
-  let maxHistoryLength = 500;
+  let historyCap = 500;
 
-  // Debug logger
-  function log(...args) {
-    if (debug) console.log('[SymbolEngine]', ...args);
+  // adapters (opt-in)
+  let gestureAPI = null;   // { on(eventName, cb) }
+  let layoutAPI = null;    // { build(container,type,items,ctx) }
+  let memoryAPI = null;    // { store, recall, forget, addHook }
+  let narrativeAPI = null; // { track, registerStoryboard, on }
+  let hookAPI = null;      // HookEngine instance
+  let stateAPI = null;     // StateEngine instance
+
+  // meta-context / synergy
+  const metaContext = new Map();
+  const metaSubs = new Map();
+
+  // transactions & undo/redo
+  const transactions = [];
+  const txHistory = [];
+  let txPointer = -1;
+
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const log = (...a) => { if (debug) try { console.log('[SymbolEngine]', ...a); } catch(_){}; };
+  const createError = (m,c,d) => Object.assign(new Error(m), { code: c, details: d });
+
+  // helpers
+  function ensureMetrics(name) {
+    if (!metrics.has(name)) metrics.set(name, { count:0, avgTime:0, errors:0, itemMetrics: new Map() });
+    return metrics.get(name);
   }
-
-  // Trace logger
-  function trace(...args) {
-    if (debug) console.trace('[SymbolEngine]', ...args);
+  function pushHistory(entry) {
+    history.push(entry);
+    while (history.length > historyCap) history.shift();
   }
+  function recordTx(op) { if (!transactions.length) return; transactions[transactions.length-1].ops.push(op); }
 
-  // Structured error
-  function createError(message, code, details = {}) {
-    const error = new Error(message);
-    error.code = code;
-    error.details = details;
-    return error;
-  }
-
-  // Register symbol pattern
-  /**
-   * @param {string} pattern
-   * @param {Function} logic
-   * @param {SymbolOptions} [options]
-   * @param {Object} [meta]
-   */
-  function register(pattern, logic, options = {}, meta = {}) {
-    if (typeof pattern !== 'string' || !pattern) throw createError('pattern must be a non-empty string', 'INVALID_PATTERN');
-    if (typeof logic !== 'function') throw createError('logic must be a function', 'INVALID_LOGIC');
-    if (options.validator && typeof options.validator === 'function' && !options.validator(pattern)) {
-      throw createError('Pattern validation failed', 'INVALID_PATTERN_VALIDATION');
-    }
-    symbols.set(pattern, {
-      logic,
-      options: Object.assign({ priority: 0, active: true }, options),
-      active: options.active !== false,
-      registered: Date.now(),
-      meta
-    });
-    log('Registered symbol:', pattern, options, meta);
-  }
-
-  // Unregister pattern
-  function unregister(pattern) {
-    symbols.delete(pattern);
-    hooks.delete(pattern);
-    log('Unregistered symbol:', pattern);
-  }
-
-  // Activate/deactivate pattern (individual)
-  function setPatternActive(pattern, state = true) {
-    if (symbols.has(pattern)) {
-      symbols.get(pattern).active = !!state;
-      log('Pattern', pattern, 'active:', !!state);
-    }
-  }
-
-  // Add per-pattern hook
-  function addHook(pattern, phase, callback) {
-    if (!hooks.has(pattern)) hooks.set(pattern, { before: [], after: [], error: [] });
-    hooks.get(pattern)[phase].push(callback);
-    return () => {
-      hooks.get(pattern)[phase] = hooks.get(pattern)[phase].filter(cb => cb !== callback);
-    };
-  }
-
-  // Add global hook
-  function addGlobalHook(phase, callback) {
-    if (globalHooks[phase]) globalHooks[phase].push(callback);
-    return () => { globalHooks[phase] = globalHooks[phase].filter(cb => cb !== callback); };
-  }
-
-  // Fire hooks
-  async function fireHooks(pattern, phase, payload) {
-    for (const cb of globalHooks[phase]) {
-      try { await cb(payload); } catch (e) { log(`Global ${phase} hook error`, e); }
-    }
-    if (hooks.has(pattern)) {
-      for (const cb of hooks.get(pattern)[phase] || []) {
-        try { await cb(payload); } catch (e) { log(`Hook error for ${pattern} (${phase})`, e); }
+  // adapters attach
+  function attachGestureAPI(api) { gestureAPI = api; // auto-subscribe if possible
+    if (gestureAPI && typeof gestureAPI.on === 'function') gestureAPI.on('gesture:detected', ({ type, detail }) => {
+      // run patterns that declare matchGesture:type or options.gesture = type
+      for (const [pName, p] of patterns.entries()) {
+        if (!p.active) continue;
+        const opt = p.options || {};
+        if (opt.gesture === type || (opt.gestures && opt.gestures.includes(type))) {
+          apply({ event: 'gesture', gesture: type, detail, patternTriggered: pName }).catch(()=>{});
+        }
       }
+    });
+    return () => { gestureAPI = null; };
+  }
+  function attachLayoutAPI(api) { layoutAPI = api; return () => { layoutAPI = null; }; }
+  function attachMemoryAPI(api) { memoryAPI = api; return () => { memoryAPI = null; }; }
+  function attachNarrativeAPI(api) { narrativeAPI = api; return () => { narrativeAPI = null; }; }
+  function attachHookAPI(api) { hookAPI = api; return () => { hookAPI = null; }; }
+  function attachStateAPI(api) { stateAPI = api; return () => { stateAPI = null; }; }
+
+  // meta-context
+  function publishMeta(topic, payload) {
+    const prev = metaContext.has(topic) ? metaContext.get(topic) : undefined;
+    metaContext.set(topic, payload);
+    const subs = metaSubs.get(topic) || [];
+    for (const cb of subs.slice()) try { cb(payload, prev); } catch(e){ log('meta cb err', e); }
+    recordTx({ type: 'metaPublish', topic, prev, new: payload });
+  }
+  function onMeta(topic, cb) { if (!metaSubs.has(topic)) metaSubs.set(topic, []); metaSubs.get(topic).push(cb); return () => { metaSubs.set(topic, metaSubs.get(topic).filter(x=>x!==cb)); }; }
+  function readMeta(topic) { return metaContext.get(topic); }
+
+  // transactions
+  function beginTransaction(label) {
+    const tx = { id:`tx-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, label: label||'', ops:[], createdAt: Date.now() };
+    transactions.push(tx);
+    return tx.id;
+  }
+  function commitTransaction() {
+    if (!transactions.length) throw createError('no active transaction','NO_TRANSACTION');
+    const tx = transactions.pop(); tx.committed = true;
+    txHistory.splice(txPointer+1); txHistory.push(tx); txPointer = txHistory.length-1;
+    return tx.id;
+  }
+  function rollbackTransaction() {
+    if (!transactions.length) throw createError('no active transaction','NO_TRANSACTION');
+    const tx = transactions.pop();
+    // reverse ops best-effort
+    for (let i = tx.ops.length-1; i>=0; i--) {
+      const op = tx.ops[i];
+      try {
+        if (op.type === 'register') { patterns.delete(op.pattern); patternHooks.delete(op.pattern); }
+        else if (op.type === 'unregister') patterns.set(op.pattern, op.prev);
+        else if (op.type === 'metaPublish') { if (typeof op.prev === 'undefined') metaContext.delete(op.topic); else metaContext.set(op.topic, op.prev); }
+      } catch(e){ log('rollback op failed', e); }
+    }
+    return tx.id;
+  }
+  async function undo(steps=1) {
+    let undone=0;
+    while (undone<steps && txPointer>=0) {
+      const tx = txHistory[txPointer];
+      transactions.push({ ops: tx.ops.slice() });
+      rollbackTransaction();
+      txPointer--;
+      undone++;
+    }
+    return { undone };
+  }
+  async function redo(steps=1) {
+    let redone=0;
+    while (redone<steps && txPointer < txHistory.length-1) {
+      const next = txHistory[txPointer+1];
+      for (const op of next.ops) {
+        try {
+          if (op.type === 'register') patterns.set(op.pattern, op.new);
+          else if (op.type === 'unregister') patterns.delete(op.pattern);
+          else if (op.type === 'metaPublish') metaContext.set(op.topic, op.new);
+        } catch(e){ log('redo op failed', e); }
+      }
+      txPointer = Math.min(txPointer+1, txHistory.length-1);
+      redone++;
+    }
+    return { redone };
+  }
+
+  // registration
+  function register(pattern, logic, options = {}, meta = {}) {
+    if (typeof pattern !== 'string' || !pattern) throw createError('pattern required','INVALID_PATTERN');
+    if (typeof logic !== 'function') throw createError('logic must be function','INVALID_LOGIC');
+    const opts = Object.assign({ priority:0, matcher:null, validator:null, active:true, tags:[], persist:false, expires:0, measurePerItem:false }, options);
+    const entry = { logic, options: opts, active: opts.active !== false, registered: Date.now(), meta };
+    patterns.set(pattern, entry);
+    recordTx({ type: 'register', pattern, new: entry });
+    log('registered pattern', pattern);
+    // persist pattern metadata if memoryAPI attached and persist true
+    if (memoryAPI && opts.persist) {
+      try { memoryAPI.store(`pattern:${pattern}:meta`, { options: opts, meta }, { persist: true }); } catch(e){ log('memory persist err', e); }
+    }
+    return () => unregister(pattern);
+  }
+  function unregister(pattern) {
+    if (!patterns.has(pattern)) return;
+    const prev = patterns.get(pattern);
+    patterns.delete(pattern);
+    patternHooks.delete(pattern);
+    recordTx({ type: 'unregister', pattern, prev });
+    log('unregistered pattern', pattern);
+  }
+  function setPatternActive(pattern, state=true) {
+    if (patterns.has(pattern)) {
+      const prev = patterns.get(pattern).active;
+      patterns.get(pattern).active = !!state;
+      recordTx({ type: 'setActive', pattern, prev, new: !!state });
     }
   }
 
-  // Match patterns
+  // hooks
+  function addHook(pattern, phase, cb) {
+    if (!patternHooks.has(pattern)) patternHooks.set(pattern, { before:[], after:[], error:[] });
+    patternHooks.get(pattern)[phase].push(cb);
+    return () => { patternHooks.get(pattern)[phase] = patternHooks.get(pattern)[phase].filter(x=>x!==cb); };
+  }
+  function addGlobalHook(phase, cb) {
+    if (!globalHooks[phase]) throw createError('invalid phase','INVALID_PHASE');
+    globalHooks[phase].push(cb);
+    return () => { globalHooks[phase] = globalHooks[phase].filter(x=>x!==cb); };
+  }
+  async function _fireHooks(pattern, phase, payload) {
+    for (const g of globalHooks[phase] || []) try { await Promise.resolve(g({ pattern, payload })); } catch(e){ log('global hook err', e); }
+    if (!patternHooks.has(pattern)) return;
+    for (const cb of patternHooks.get(pattern)[phase] || []) try { await Promise.resolve(cb(payload)); } catch(e){ log('pattern hook err', e); }
+  }
+
+  // pattern matching util
   function matchPattern(pattern, value, customMatcher) {
-    if (customMatcher && typeof customMatcher === 'function') {
-      try { return customMatcher(pattern, value); }
-      catch (e) { log('Custom matcher error:', pattern, e); return false; }
+    if (typeof customMatcher === 'function') {
+      try { return !!customMatcher(pattern, value); } catch(e){ log('matcher err', e); return false; }
     }
-    if (pattern.endsWith('*')) return value.startsWith(pattern.slice(0, -1));
+    if (pattern.endsWith('*')) return String(value || '').startsWith(pattern.slice(0,-1));
     if (pattern.startsWith('/') && pattern.endsWith('/')) {
-      try { return new RegExp(pattern.slice(1, -1)).test(value); }
-      catch (e) { log('Invalid RegExp pattern:', pattern, e); return false; }
+      try { return new RegExp(pattern.slice(1,-1)).test(String(value)); } catch(e){ return false; }
     }
     return pattern === value;
   }
 
-  // Apply symbolic logic (per context)
-  /**
-   * @param {Object} [context]
-   * @returns {Promise<Object>} results per pattern
-   */
+  // apply (single context)
   async function apply(context = {}) {
-    if (!active) return {};
-    const startTime = performance.now();
-    const value = context.archetype || context.intent || context.type || '';
-    const results = {};
-    const sortedSymbols = Array.from(symbols.entries())
-      .filter(([, meta]) => meta.active)
-      .sort(([, a], [, b]) => (b.options.priority || 0) - (a.options.priority || 0));
-
-    for (const [pattern, { logic, options, meta }] of sortedSymbols) {
-      if (matchPattern(pattern, value, options.matcher)) {
-        let error = undefined;
-        try {
-          await fireHooks(pattern, 'before', { context, pattern });
-          const result = await logic(context);
-          await fireHooks(pattern, 'after', { context, pattern, result });
-          results[pattern] = result;
-          log(`Applied symbol: ${pattern}`, context);
-          applyHistory.push({
-            pattern,
-            context,
-            result,
-            time: Date.now(),
-            error: null,
-            performance: { duration: performance.now() - startTime },
-            tags: options.tags || (meta && meta.tags) || []
-          });
-        } catch (e) {
-          error = createError(`Error applying symbol ${pattern}`, 'APPLY_ERROR', { error: e });
-          await fireHooks(pattern, 'error', { context, pattern, error });
-          log(`Error applying symbol ${pattern}:`, error);
-          applyHistory.push({
-            pattern,
-            context,
-            result: null,
-            time: Date.now(),
-            error,
-            performance: { duration: performance.now() - startTime },
-            tags: options.tags || (meta && meta.tags) || []
-          });
-          // Fire structured error event for integrations
-          dispatchEvent('symbol:error', { pattern, context, error });
-        }
-        while (applyHistory.length > maxHistoryLength) applyHistory.shift();
-      }
-    }
-    return results;
-  }
-
-  // Batch apply contexts (async, concurrency, error handling)
-  /**
-   * @param {Object[]} contexts
-   * @param {Object} [options]
-   * @param {number} [options.concurrency=5]
-   * @param {boolean} [options.stopOnError=false]
-   * @returns {Promise<Object>} results per context, per pattern
-   */
-  async function batchApply(contexts, options = {}) {
-    const startTime = performance.now();
-    const { concurrency = 5, stopOnError = false } = options;
-    const results = {};
-    let errorCount = 0;
-    let activeTasks = 0;
-    let idx = 0;
-
-    async function processContext(context) {
+    const start = now();
+    const val = context.symbol || context.type || context.intent || '';
+    const out = {};
+    // sort by priority desc
+    const list = Array.from(patterns.entries()).filter(([,p]) => p.active)
+      .sort(([,a],[,b]) => (b.options.priority || 0) - (a.options.priority || 0));
+    for (const [pName, pEntry] of list) {
+      const { logic, options, meta } = pEntry;
       try {
-        const res = await apply(context);
-        results[JSON.stringify(context)] = res;
+        // before hooks
+        await _fireHooks(pName, 'before', { context });
+        for (const g of globalHooks.before) try { await Promise.resolve(g({ pattern: pName, context })); } catch(_) {}
+        // match check: either matcher or pattern name matching val
+        const matched = options.matcher ? await Promise.resolve(options.matcher(val, context)) : matchPattern(pName, val, null);
+        if (!matched) continue;
+        // validate if provided
+        if (options.validator && typeof options.validator === 'function') {
+          const ok = await Promise.resolve(options.validator(context));
+          if (!ok) continue;
+        }
+        const t0 = now();
+        const res = await Promise.resolve(logic(context));
+        const dur = now() - t0;
+        ensureMetrics(pName);
+        const m = ensureMetrics(pName);
+        m.count++; m.avgTime = (m.avgTime * (m.count - 1) + dur) / m.count;
+        out[pName] = res;
+        // after hooks
+        await _fireHooks(pName, 'after', { context, result: res });
+        for (const g of globalHooks.after) try { await Promise.resolve(g({ pattern: pName, context, result: res })); } catch(_) {}
+        // history & per-item metrics
+        pushHistory({ pattern: pName, context, result: res, time: Date.now(), error: null, performance: { duration: dur }, tags: options.tags || meta.tags || [] });
+        if (options.persistResult && memoryAPI) {
+          try { await memoryAPI.store(`symbol:${pName}:last`, res, { persist: true, expires: options.resultExpires || 0 }); } catch(e){ log('memory store err', e); }
+        }
+        if (options.render && layoutAPI) {
+          try { await layoutAPI.build(options.render.container, options.render.type || 'default', options.render.items || [res], Object.assign({}, context, { pattern: pName })); } catch(e){ log('layout build err', e); }
+        }
+        if (options.publishMeta) publishMeta(options.publishMeta.topic || `symbol:${pName}`, { pattern: pName, result: res, context });
       } catch (err) {
-        results[JSON.stringify(context)] = { error: err };
-        errorCount++;
-        if (stopOnError) throw err;
+        const structured = createError(`pattern ${pName} error`, 'PATTERN_ERROR', { error: err });
+        await _fireHooks(pName, 'error', { context, error: structured });
+        for (const g of globalHooks.error) try { await Promise.resolve(g({ pattern: pName, error: structured })); } catch(_) {}
+        pushHistory({ pattern: pName, context, result: null, time: Date.now(), error: structured, performance: { duration: now() - start } });
       }
     }
-
-    // Simple concurrency control
-    const queue = [];
-    while (idx < contexts.length) {
-      while (activeTasks < concurrency && idx < contexts.length) {
-        activeTasks++;
-        const context = contexts[idx++];
-        queue.push(processContext(context).finally(() => { activeTasks--; }));
-      }
-      await Promise.race(queue);
+    // narration integration: if narrativeAPI and context signals progression
+    if (narrativeAPI && typeof narrativeAPI.track === 'function' && context.event) {
+      try { narrativeAPI.track(context).catch(()=>{}); } catch(_) {}
     }
-    await Promise.all(queue);
+    return out;
+  }
 
-    log('Batch apply completed', { count: contexts.length, errors: errorCount, duration: performance.now() - startTime });
-    dispatchEvent('symbol:batchApplied', { count: contexts.length, errors: errorCount, duration: performance.now() - startTime });
+  // batchApply with concurrency and stopOnError
+  async function batchApply(contexts = [], { concurrency = 5, stopOnError = false } = {}) {
+    if (!Array.isArray(contexts)) throw createError('contexts must be array','INVALID_ARG');
+    const results = {};
+    let i = 0;
+    const workers = new Array(Math.min(concurrency, contexts.length)).fill(0).map(async () => {
+      while (i < contexts.length) {
+        const idx = i++;
+        try { results[idx] = await apply(contexts[idx]); } catch (e) { results[idx] = { error: e }; if (stopOnError) throw e; }
+      }
+    });
+    await Promise.all(workers);
     return results;
   }
 
-  // Dispatch structured error event
-  function dispatchEvent(type, detail) {
-    document.dispatchEvent(new CustomEvent(type, { bubbles: true, detail }));
-    log('Dispatched event:', type, detail);
-  }
-
-  // Activate/deactivate engine (global)
-  function toggleActive(state = true) {
-    active = !!state;
-    log('SymbolEngine global active:', active);
-  }
-
-  // Set history cap
-  function setHistoryCap(cap) {
-    maxHistoryLength = Math.max(0, cap);
-    while (applyHistory.length > maxHistoryLength) applyHistory.shift();
-    log('History cap set:', maxHistoryLength);
-  }
-
-  // Registry and history
-  function getRegistry() {
-    return Object.fromEntries(Array.from(symbols.entries()).map(([pattern, meta]) => [pattern, { ...meta }]));
-  }
-
-  function getPatterns() {
-    return Array.from(symbols.keys());
-  }
-
-  function getPatternMeta(pattern) {
-    return symbols.get(pattern);
-  }
-
-  function getPriorities() {
-    return Array.from(symbols.entries()).map(([pattern, meta]) => ({ pattern, priority: meta.options.priority || 0 }));
-  }
-
-  function filterPatternsByTag(tag) {
-    return Array.from(symbols.entries()).filter(([, meta]) =>
-      (meta.options.tags || []).includes(tag)
-    ).map(([pattern]) => pattern);
-  }
-
-  function validateAllPatterns() {
-    return Array.from(symbols.entries()).map(([pattern, meta]) => ({
-      pattern,
-      valid: !meta.options.validator || meta.options.validator(pattern)
-    }));
-  }
-
-  /**
-   * @param {{pattern?: string, maxAge?: number, errorOnly?: boolean, tag?: string}} [filter]
-   * @returns {HistoryEntry[]}
-   */
+  // introspection & utilities
   function getHistory(filter = {}) {
-    let result = [...applyHistory];
-    if (filter.pattern) result = result.filter(entry => entry.pattern === filter.pattern);
-    if (filter.maxAge) result = result.filter(entry => entry.time >= Date.now() - filter.maxAge);
-    if (filter.errorOnly) result = result.filter(entry => !!entry.error);
-    if (filter.tag) result = result.filter(entry => entry.tags && entry.tags.includes(filter.tag));
-    return result;
+    let res = history.slice();
+    if (filter.pattern) res = res.filter(h => h.pattern === filter.pattern);
+    if (filter.maxAge) res = res.filter(h => h.time >= Date.now() - filter.maxAge);
+    if (filter.errorOnly) res = res.filter(h => !!h.error);
+    if (filter.tag) res = res.filter(h => h.tags && h.tags.includes(filter.tag));
+    if (filter.predicate) res = res.filter(filter.predicate);
+    return res;
   }
+  function clearHistory() { history.length = 0; }
+  function setHistoryCap(cap) { if (cap < 0) throw createError('invalid cap','INVALID_HISTORY_CAP'); historyCap = cap; while (history.length > historyCap) history.shift(); }
+  function getRegistry() { return Object.fromEntries(Array.from(patterns.entries()).map(([p,v]) => [p, Object.assign({}, v)])); }
+  function getPatterns() { return Array.from(patterns.keys()); }
+  function filterPatternsByTag(tag) { return Array.from(patterns.entries()).filter(([,p]) => (p.options.tags||[]).includes(tag)).map(([k]) => k); }
+  function validateAllPatterns() { return Array.from(patterns.entries()).map(([p,entry]) => ({ pattern: p, valid: !entry.options.validator || !!entry.options.validator(p) })); }
+  function getMetrics(patternName) { return patternName ? (metrics.get(patternName) || { count:0, avgTime:0, errors:0 }) : Object.fromEntries(Array.from(metrics.entries()).map(([k,v])=>[k, { count:v.count, avgTime:v.avgTime, errors:v.errors }])); }
 
-  function clearHistory() {
-    applyHistory.length = 0;
-    log('Apply history cleared');
+  function setDebug(v) { debug = !!v; }
+
+  // wire shorthand adapters for convenience
+  const adapter = { attachGestureAPI, attachLayoutAPI, attachMemoryAPI, attachNarrativeAPI, attachHookAPI, attachStateAPI };
+
+  // init: optionally restore persisted pattern metadata
+  async function init() {
+    if (!memoryAPI) return;
+    try {
+      for (const [pName, p] of patterns.entries()) {
+        if (p.options && p.options.persist) {
+          try {
+            const meta = await memoryAPI.recall(`pattern:${pName}:meta`);
+            if (meta) { p.options = Object.assign({}, p.options, meta.options || {}); p.meta = Object.assign({}, p.meta || {}, meta.meta || {}); }
+          } catch(e){ log('restore pattern meta err', e); }
+        }
+      }
+    } catch (e) { log('init err', e); }
   }
-
-  function unregisterHook(pattern, phase, callback) {
-    if (hooks.has(pattern)) {
-      hooks.get(pattern)[phase] = hooks.get(pattern)[phase].filter(cb => cb !== callback);
-    }
-  }
-
-  function unregisterGlobalHook(phase, callback) {
-    globalHooks[phase] = globalHooks[phase].filter(cb => cb !== callback);
-  }
-
-  // Debug
-  function setDebug(val) {
-    debug = !!val;
-  }
-
-  // Demo/init: register default symbols with metadata
-  function init() {
-    register(
-      'explorer*',
-      ctx => { log('Explorer mode activated', ctx); },
-      { priority: 10, tags: ['explore', 'default'], description: 'For explorer archetypes.' }
-    );
-    register(
-      'observer',
-      ctx => { log('Observer mode activated', ctx); },
-      { priority: 5, tags: ['observe', 'default'], description: 'For observer archetypes.' }
-    );
-    toggleActive(true);
-    log('SymbolEngine initialized');
-  }
-
-  document.addEventListener('DOMContentLoaded', init);
+  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', init);
 
   return {
-    register,
-    unregister,
-    setPatternActive,
-    addHook,
-    addGlobalHook,
-    unregisterHook,
-    unregisterGlobalHook,
-    apply,
-    batchApply,
-    toggleActive,
-    setDebug,
-    getRegistry,
-    getPatterns,
-    getPatternMeta,
-    getPriorities,
-    filterPatternsByTag,
-    validateAllPatterns,
-    getHistory,
-    clearHistory,
-    setHistoryCap
+    register, unregister, setPatternActive, addHook, addGlobalHook,
+    apply, batchApply, getHistory, clearHistory, setHistoryCap,
+    getRegistry, getPatterns, filterPatternsByTag, validateAllPatterns,
+    getMetrics, setDebug, adapter,
+    // adapters & meta
+    publishMeta, onMeta, readMeta,
+    // transactions
+    beginTransaction, commitTransaction, rollbackTransaction, undo, redo,
+    // internals for debugging
+    _internal: { patterns, patternHooks, history, metrics, txHistory, metaContext }
   };
 })();
 

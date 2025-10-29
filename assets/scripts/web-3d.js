@@ -36,7 +36,7 @@ export default class DOM3DManager {
     // Anchors and visibility management
     this.anchors = new Map();
     this.visibleAnchors = new Set();
-    
+
     // Performance monitoring
     this.performance = {
       updateTime: 0,
@@ -65,9 +65,9 @@ export default class DOM3DManager {
       zIndexNear: 1000,
       useCssTransition: true,
       transitionDuration: '180ms',
-      rotation: { enabled: false, axis: 'y', multiplier: 1 }, // New rotation support
-      transformCallback: null, // Custom transform callback
-      batchSize: 50, // Process anchors in batches
+      rotation: { enabled: false, axis: 'y', multiplier: 1 },
+      transformCallback: null,
+      batchSize: 50,
     }, defaults);
 
     // Reusable temps
@@ -97,9 +97,131 @@ export default class DOM3DManager {
     window.addEventListener('pointerup', this._eventHandlers.pointerup);
     this.renderer.domElement.addEventListener('pointerleave', this._eventHandlers.pointerleave);
 
+    // Adapters (opt-in)
+    this.symbolAPI = null;
+    this.memoryAPI = null;
+    this.gestureAPI = null;
+    this.stateAPI = null;
+    this.narrativeAPI = null;
+    this.hookAPI = null;
+
+    // Meta-context / synergy
+    this._metaContext = new Map();
+    this._metaSubs = new Map();
+
+    // Transactions / undo-redo
+    this._transactions = [];
+    this._txHistory = [];
+    this._txPointer = -1;
+
     this._updateViewport();
     if (autoUpdate) this.start();
   }
+
+  // --- Meta-context (synergy) ---
+  publishMeta(topic, payload) {
+    const prev = this._metaContext.has(topic) ? this._metaContext.get(topic) : undefined;
+    this._metaContext.set(topic, payload);
+    const subs = this._metaSubs.get(topic) || [];
+    for (const cb of subs.slice()) try { cb(payload, prev); } catch (e) { /* swallow */ }
+    this._recordTx({ type: 'metaPublish', topic, prev, new: payload });
+  }
+  onMeta(topic, cb) {
+    if (!this._metaSubs.has(topic)) this._metaSubs.set(topic, []);
+    this._metaSubs.get(topic).push(cb);
+    return () => { this._metaSubs.set(topic, this._metaSubs.get(topic).filter(x => x !== cb)); };
+  }
+  readMeta(topic) { return this._metaContext.get(topic); }
+
+  // --- Adapter attach ---
+  attachSymbolAPI(api) { this.symbolAPI = api; return () => { this.symbolAPI = null; }; }
+  attachMemoryAPI(api) { this.memoryAPI = api; return () => { this.memoryAPI = null; }; }
+  attachGestureAPI(api) {
+    this.gestureAPI = api;
+    // if gesture API exposes registerAnchor-like contract, register existing anchors
+    if (this.gestureAPI && typeof this.gestureAPI.registerAnchor === 'function') {
+      for (const [el, s] of this.anchors.entries()) {
+        try { this.gestureAPI.registerAnchor(el, { object3D: s.object, options: s.options }); } catch (_) {}
+      }
+    }
+    return () => { this.gestureAPI = null; };
+  }
+  attachStateAPI(api) { this.stateAPI = api; return () => { this.stateAPI = null; }; }
+  attachNarrativeAPI(api) { this.narrativeAPI = api; return () => { this.narrativeAPI = null; }; }
+  attachHookAPI(api) { this.hookAPI = api; return () => { this.hookAPI = null; }; }
+
+  // --- Transactions ---
+  _recordTx(op) { if (!this._transactions.length) return; this._transactions[this._transactions.length - 1].ops.push(op); }
+  beginTransaction(label = '') {
+    const tx = { id: `tx-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, label, ops: [], createdAt: Date.now() };
+    this._transactions.push(tx);
+    return tx.id;
+  }
+  commitTransaction() {
+    if (!this._transactions.length) throw new Error('no active transaction');
+    const tx = this._transactions.pop();
+    tx.committedAt = Date.now();
+    // trim redo chain
+    this._txHistory.splice(this._txPointer + 1);
+    this._txHistory.push(tx);
+    this._txPointer = this._txHistory.length - 1;
+    return tx.id;
+  }
+  rollbackTransaction() {
+    if (!this._transactions.length) throw new Error('no active transaction');
+    const tx = this._transactions.pop();
+    for (let i = tx.ops.length - 1; i >= 0; i--) {
+      const op = tx.ops[i];
+      try {
+        if (op.type === 'attach') {
+          this.detach(op.element);
+        } else if (op.type === 'detach') {
+          this.attach(op.element, op.object, op.options);
+        } else if (op.type === 'setOptions') {
+          this.setAnchorOptions(op.element, op.prevOptions);
+        } else if (op.type === 'metaPublish') {
+          if (typeof op.prev === 'undefined') this._metaContext.delete(op.topic); else this._metaContext.set(op.topic, op.prev);
+        } else if (op.type === 'memoryPersist') {
+          // restore previous stored raw if available (best-effort)
+          if (this.memoryAPI && typeof this.memoryAPI.store === 'function') {
+            try {
+              if (typeof op.prevRaw !== 'undefined') this.memoryAPI.store(op.memKey, op.prevRaw, { persist: true });
+            } catch (_) {}
+          }
+        }
+      } catch (e) { /* best-effort */ }
+    }
+    return tx.id;
+  }
+  async undo(steps = 1) {
+    let undone = 0;
+    while (undone < steps && this._txPointer >= 0) {
+      const tx = this._txHistory[this._txPointer];
+      this._transactions.push({ ops: tx.ops.slice() });
+      this.rollbackTransaction();
+      this._txPointer--;
+      undone++;
+    }
+    return { undone };
+  }
+  async redo(steps = 1) {
+    let redone = 0;
+    while (redone < steps && this._txPointer < this._txHistory.length - 1) {
+      const next = this._txHistory[this._txPointer + 1];
+      for (const op of next.ops) {
+        try {
+          if (op.type === 'attach') this.attach(op.element, op.object, op.options);
+          else if (op.type === 'detach') this.detach(op.element);
+          else if (op.type === 'setOptions') this.setAnchorOptions(op.element, op.newOptions);
+          else if (op.type === 'metaPublish') this._metaContext.set(op.topic, op.new);
+        } catch (_) {}
+      }
+      this._txPointer = Math.min(this._txPointer + 1, this._txHistory.length - 1);
+      redone++;
+    }
+    return { redone };
+  }
+  getTransactionHistory() { return this._txHistory.slice(); }
 
   // Update viewport measurements
   _updateViewport() {
@@ -113,7 +235,7 @@ export default class DOM3DManager {
   }
 
   /**
-   * Enhanced attach with rotation support
+   * Enhanced attach with rotation support and optional persistence
    * @param {HTMLElement} domEl
    * @param {THREE.Object3D} object3D
    * @param {Object} [options]
@@ -142,12 +264,31 @@ export default class DOM3DManager {
     object3D.userData = object3D.userData || {};
     object3D.userData.domElement = domEl;
 
+    // record transaction op
+    this._recordTx({ type: 'attach', element: domEl, object: object3D, options: opts });
+
+    // integrate with gestureAPI if attached
+    if (this.gestureAPI && typeof this.gestureAPI.registerAnchor === 'function') {
+      try { this.gestureAPI.registerAnchor(domEl, { object3D, options: opts }); } catch (_) {}
+    }
+
+    // persist anchor meta to memoryAPI if requested
+    if (opts.persistAnchor && this.memoryAPI && typeof this.memoryAPI.store === 'function') {
+      try {
+        const memKey = `dom3d:anchor:${domEl.id || Math.random().toString(36).slice(2,8)}`;
+        const rawPrev = (this.memoryAPI.recall && this.memoryAPI.recall(memKey)) || undefined;
+        this._recordTx({ type: 'memoryPersist', memKey, prevRaw: rawPrev });
+        this.memoryAPI.store(memKey, { options: opts }, { persist: true }).catch(()=>{});
+      } catch (_) {}
+    }
+
     // Initial visibility check
     this._updateAnchorVisibility(domEl, state);
   }
 
   detach(domEl) {
     if (this.anchors.has(domEl)) {
+      const prev = this.anchors.get(domEl);
       this.anchors.delete(domEl);
       this.visibleAnchors.delete(domEl);
       domEl.style.transform = '';
@@ -155,14 +296,32 @@ export default class DOM3DManager {
       domEl.style.display = '';
       domEl.style.transition = '';
       domEl.style.rotate = '';
+
+      // record transaction
+      this._recordTx({ type: 'detach', element: domEl, object: prev.object, options: prev.options });
+
+      // unregister from gestureAPI if applicable
+      if (this.gestureAPI && typeof this.gestureAPI.removeAnchor === 'function') {
+        try { this.gestureAPI.removeAnchor(domEl); } catch (_) {}
+      }
     }
   }
 
   setAnchorOptions(domEl, updates = {}) {
     const s = this.anchors.get(domEl);
     if (!s) return;
+    const prevOptions = Object.assign({}, s.options);
     s.options = Object.assign({}, s.options, updates);
     this._updateAnchorVisibility(domEl, s);
+    this._recordTx({ type: 'setOptions', element: domEl, prevOptions, newOptions: s.options });
+
+    // persist updated options if memoryAPI attached and option requests persistence
+    if (s.options.persistAnchor && this.memoryAPI && typeof this.memoryAPI.store === 'function') {
+      try {
+        const memKey = `dom3d:anchor:${domEl.id || Math.random().toString(36).slice(2,8)}`;
+        this.memoryAPI.store(memKey, { options: s.options }, { persist: true }).catch(()=>{});
+      } catch (_) {}
+    }
   }
 
   worldToScreen(world) {
@@ -372,6 +531,10 @@ export default class DOM3DManager {
         const detail = { point: hit.point.clone(), object: hit.object, face: hit.face, originalEvent: e };
         this._dispatchEventToDomForHit(hit, '3d-pointerdown', detail, e);
         this._pointerDownTargets.add(hit.object);
+        // call hook API if attached
+        if (this.hookAPI && typeof this.hookAPI.trigger === 'function') {
+          try { this.hookAPI.trigger('3d:pointerdown', { hit: detail }); } catch (_) {}
+        }
       }
     } else if (type === 'pointermove') {
       if (hit && (!prevHit || prevHit.object !== hit.object)) {
@@ -388,6 +551,8 @@ export default class DOM3DManager {
         this._dispatchEventToDomForHit(hit, '3d-pointerup', { point: hit.point.clone(), object: hit.object, originalEvent: e }, e);
         if (this._pointerDownTargets.has(hit.object)) {
           this._dispatchEventToDomForHit(hit, '3d-click', { point: hit.point.clone(), object: hit.object, originalEvent: e }, e);
+          // integrations on click/hit:
+          this._onHitIntegration(hit, e);
         }
       }
       this._pointerDownTargets.clear();
@@ -414,7 +579,54 @@ export default class DOM3DManager {
 
     const ce = new CustomEvent(eventName, { detail: Object.assign({}, detail, { originalEvent }), bubbles: true, cancelable: true });
     if (targetEl) targetEl.dispatchEvent(ce);
-    this.renderer.domElement.dispatchEvent(ce);
+    try { this.renderer.domElement.dispatchEvent(ce); } catch (_) {}
+    // also call hookAPI if attached
+    if (this.hookAPI && typeof this.hookAPI.trigger === 'function') {
+      try { this.hookAPI.trigger(eventName, { detail }).catch?.(()=>{}); } catch (_) {}
+    }
+  }
+
+  // handle integrations when a 3D object is clicked/hit
+  _onHitIntegration(hit, originalEvent) {
+    const object = hit.object;
+    const domEl = object.userData && object.userData.domElement;
+    const anchorState = domEl ? this.anchors.get(domEl) : null;
+
+    // 1) Symbolic logic: if anchor has symbol pattern, call symbolAPI.apply
+    try {
+      if (anchorState && anchorState.options?.symbolPattern && this.symbolAPI && typeof this.symbolAPI.apply === 'function') {
+        this.symbolAPI.apply({ pattern: anchorState.options.symbolPattern, context: { object, hit } }).catch(()=>{});
+      }
+    } catch (_) {}
+
+    // 2) Memory: record detection or store anchor metadata
+    try {
+      if (anchorState && anchorState.options?.persistDetection && this.memoryAPI && typeof this.memoryAPI.store === 'function') {
+        const memKey = anchorState.options.memKey || `dom3d:detect:${domEl?.id || Math.random().toString(36).slice(2,8)}`;
+        this.memoryAPI.store(memKey, { time: Date.now(), objectId: object.id, anchorOptions: anchorState.options }, { persist: !!anchorState.options.persistDetection }).catch(()=>{});
+      }
+    } catch (_) {}
+
+    // 3) State: update state store if attached
+    try {
+      if (anchorState && anchorState.options?.stateKey && this.stateAPI && typeof this.stateAPI.set === 'function') {
+        this.stateAPI.set(anchorState.options.stateKey, { lastHitAt: Date.now(), objectId: object.id }).catch?.(()=>{});
+      }
+    } catch (_) {}
+
+    // 4) Narrative: track progression event if narrativeAPI attached
+    try {
+      if (this.narrativeAPI && typeof this.narrativeAPI.track === 'function') {
+        this.narrativeAPI.track({ event: '3d-click', objectId: object.id, anchor: domEl?.id || null }).catch?.(()=>{});
+      }
+    } catch (_) {}
+
+    // 5) Gesture integration: forward hit to gesture engine if present
+    try {
+      if (this.gestureAPI && typeof this.gestureAPI.trigger === 'function' && anchorState && anchorState.options?.gestureEvent) {
+        this.gestureAPI.trigger(anchorState.options.gestureEvent, { element: domEl, object, hit }).catch?.(()=>{});
+      }
+    } catch (_) {}
   }
 
   // Get performance metrics
@@ -440,5 +652,12 @@ export default class DOM3DManager {
     }
     this.anchors.clear();
     this.visibleAnchors.clear();
+    // clear adapters
+    this.symbolAPI = null;
+    this.memoryAPI = null;
+    this.gestureAPI = null;
+    this.stateAPI = null;
+    this.narrativeAPI = null;
+    this.hookAPI = null;
   }
 }

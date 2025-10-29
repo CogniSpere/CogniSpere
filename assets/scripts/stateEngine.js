@@ -1,598 +1,326 @@
-/**
- * stateEngine.js - Ultra-Enhanced State Engine (Refactored)
- *
- * Improvements:
- * - Safe storage access (works when sessionStorage/localStorage unavailable)
- * - Explicit persisted envelope with compressed flag + expires
- * - Persisted-expiry checked on read (persisted-only entries supported)
- * - Safe dispatchEvent wrapper and pluggable emitter
- * - Faster history trimming (splice)
- * - batchSet supports concurrency and stopOnError
- * - Non-blocking subscriber callbacks (queueMicrotask / setTimeout fallback)
- * - Robust syncHash with guards
- * - getWithMeta helper, history meta, and other small hardenings
- *
- * Exports:
- * set, get, batchSet, batchGet, setStorage, addGlobalHook, addComponentHook,
- * getHistory, clearHistory, setHistoryCap, setDebug, getRegistry, listComponents,
- * listKeys, validateAllStates, filterStatesBy, subscribe, batchSubscribe,
- * unsubscribeAll, findKeys, forget, setEmitter, getWithMeta
- */
-
-/* eslint-disable no-unused-vars */
+// StateEngine - enhanced: DOM binding, per-key hooks, sequences, meta-context/synergy, undo/redo (global), transactions
 const StateEngine = (() => {
-  // Internal state maps
-  const states = new Map(); // componentId -> Map(key -> { value, expires, meta })
-  const subscribers = new Map(); // "componentId:key" -> [callbacks]
-  const componentHooks = new Map(); // componentId -> { beforeSet:[], afterSet:[], error:[] }
+  const states = new Map(); // componentId -> Map(key -> { value, meta })
+  const subscribers = new Map(); // componentId:key -> Set(cb)
+  const keyHooks = new Map(); // componentId -> key -> { before:[], after:[], error:[] }
   const globalHooks = { beforeSet: [], afterSet: [], error: [] };
-  const stateHistory = [];
-
-  // Config / runtime
-  let maxHistoryLength = 500;
+  const history = []; // structured history of ops
+  const metrics = new Map(); // componentId:key -> { setCount, avgTime, errors }
+  const transactions = []; // active tx stack
+  const txHistory = []; // committed txs for undo/redo
+  let txPointer = txHistory.length - 1;
+  let historyCap = 500;
   let debug = false;
-  let storageMode = 'session'; // 'session' or 'local' or 'none'
-  let storage = getDefaultStorage(); // safe wrapper uses this
-  const STORAGE_PREFIX = 'state:'; // persisted key prefix
-  const eventPrefix = 'state:';
-  let customEmitter = null; // optional (type, detail) => void
+  let storageMode = 'session'; // 'session'|'local'|'none'
+  let storage = (typeof sessionStorage !== 'undefined') ? sessionStorage : null;
+  const PREFIX = 'state:';
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
-  // helpers to test environment
-  const _hasWindow = typeof window !== 'undefined';
-  const _hasDocument = typeof document !== 'undefined';
-  const _hasPerformance = typeof performance !== 'undefined' && typeof performance.now === 'function';
+  // meta-context / synergy
+  const metaContext = new Map(); // topic -> value
+  const metaSubs = new Map(); // topic -> Set(cb)
+  const dependencies = new Map(); // targetKey -> { sources: [{componentId,key}], resolver }
 
-  // Safe performance.now
-  function now() {
-    return _hasPerformance ? performance.now() : Date.now();
-  }
+  // DOM bindings (data-state="component:key" on elements)
+  const domBindings = new WeakMap(); // element -> { componentId, key, attr, syncInput }
 
-  // Debug logger
-  function log(...args) {
-    if (debug) console.log('[StateEngine]', ...args);
-  }
-  function trace(...args) {
-    if (debug) {
-      try { console.trace('[StateEngine TRACE]', ...args); } catch { console.log('[StateEngine TRACE]', ...args); }
+  // logging
+  const log = (...a) => { if (debug) try { console.log('[StateEngine]', ...a); } catch (_) {} };
+
+  // helpers
+  function createError(m, c, d) { const e = new Error(m); e.code = c; e.details = d; return e; }
+  function _ensureComp(componentId) { if (!states.has(componentId)) states.set(componentId, new Map()); return states.get(componentId); }
+  function _histPush(entry) { history.push(entry); while (history.length > historyCap) history.shift(); }
+  function setHistoryCap(cap) { if (typeof cap !== 'number' || cap < 0) throw createError('invalid cap','INVALID_HISTORY_CAP'); historyCap = cap; while (history.length > historyCap) history.shift(); }
+  function _ensureMetrics(componentId, key) { const mk = `${componentId}:${key}`; if (!metrics.has(mk)) metrics.set(mk, { setCount: 0, avgTime: 0, errors: 0 }); return metrics.get(mk); }
+  function _subKey(componentId, key) { return `${componentId}:${key}`; }
+
+  // transaction ops recording
+  function _recordTx(op) { if (!transactions.length) return; transactions[transactions.length - 1].ops.push(op); }
+  function beginTransaction(label) { const tx = { id: `tx-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, label: label||'', ops: [], createdAt: Date.now() }; transactions.push(tx); log('tx begin', tx.id); return tx.id; }
+  function commitTransaction() { if (!transactions.length) throw createError('no active transaction','NO_TX'); const tx = transactions.pop(); tx.committedAt = Date.now(); txHistory.splice(txPointer+1); txHistory.push(tx); txPointer = txHistory.length-1; log('tx commit', tx.id); return tx.id; }
+  function rollbackTransaction() { if (!transactions.length) throw createError('no active transaction','NO_TX'); const tx = transactions.pop(); for (let i = tx.ops.length-1; i >= 0; i--) { const op = tx.ops[i]; try { if (op.type === 'set') { const comp = _ensureComp(op.componentId); if (op.prev === undefined) comp.delete(op.key); else comp.set(op.key, op.prev); } else if (op.type === 'remove') { const comp = _ensureComp(op.componentId); if (op.prev !== undefined) comp.set(op.key, op.prev); else comp.delete(op.key); } else if (op.type === 'metaPublish') { if (op.prev === undefined) metaContext.delete(op.topic); else metaContext.set(op.topic, op.prev); } } catch(e){ log('rollback op failed', e); } } log('tx rollback', tx.id); return tx.id; }
+
+  // global undo/redo using committed transactions
+  async function undo(steps = 1) {
+    let undone = 0;
+    while (undone < steps && txPointer >= 0) {
+      const tx = txHistory[txPointer];
+      // create a fake tx on active stack for reuse of rollback logic
+      transactions.push({ ops: tx.ops.slice() });
+      rollbackTransaction();
+      txPointer--;
+      undone++;
     }
+    return { undone };
   }
-
-  // Determine default storage safely
-  function getDefaultStorage() {
-    try {
-      if (_hasWindow && typeof sessionStorage !== 'undefined') return sessionStorage;
-    } catch (e) {
-      // access to sessionStorage can throw in some privacy modes
-    }
-    return null;
-  }
-
-  // Public: setStorage(true) -> localStorage, false -> sessionStorage, 'none' -> disable
-  function setStorage(useLocal = false) {
-    if (useLocal === 'none') {
-      storageMode = 'none';
-      storage = null;
-      log('Storage disabled');
-      return;
-    }
-    storageMode = useLocal ? 'local' : 'session';
-    try {
-      if (_hasWindow) {
-        storage = useLocal ? localStorage : sessionStorage;
-      } else storage = null;
-      log('Storage mode set:', storageMode);
-    } catch (e) {
-      storage = null;
-      log('Storage mode set but access failed (privacy/restrictions). Falling back to none.', e);
-    }
-  }
-
-  // Safe storage operations (wrap exceptions)
-  function safeSetItem(k, v) {
-    if (!storage) return;
-    try { storage.setItem(k, v); } catch (e) { log('storage.setItem failed', e); }
-  }
-  function safeGetItem(k) {
-    if (!storage) return null;
-    try { return storage.getItem(k); } catch (e) { log('storage.getItem failed', e); return null; }
-  }
-  function safeRemoveItem(k) {
-    if (!storage) return;
-    try { storage.removeItem(k); } catch (e) { log('storage.removeItem failed', e); }
-  }
-
-  // Base64 helpers with fallbacks
-  function _btoa(str) {
-    if (typeof btoa === 'function') return btoa(str);
-    try { return Buffer.from(str, 'utf8').toString('base64'); } catch { return str; }
-  }
-  function _atob(str) {
-    if (typeof atob === 'function') return atob(str);
-    try { return Buffer.from(str, 'base64').toString('utf8'); } catch { return str; }
-  }
-
-  // Persist envelope helpers.
-  // Stored JSON: { __v: 1, compressed: bool, value: string, expires: number|null }
-  function persistEncode(value, { compressed = false, expires } = {}) {
-    try {
-      if (compressed) {
-        const s = JSON.stringify(value);
-        const b64 = _btoa(s);
-        return JSON.stringify({ __v: 1, compressed: true, value: b64, expires: expires || null });
-      } else {
-        return JSON.stringify({ __v: 1, compressed: false, value: value, expires: expires || null });
+  async function redo(steps = 1) {
+    let redone = 0;
+    while (redone < steps && txPointer < txHistory.length - 1) {
+      const next = txHistory[txPointer+1];
+      // reapply ops in order
+      for (const op of next.ops) {
+        try {
+          if (op.type === 'set') {
+            const comp = _ensureComp(op.componentId);
+            comp.set(op.key, { value: op.new.value, meta: op.new.meta });
+            _notifySubs(op.componentId, op.key, op.new.value, op.new.meta);
+          } else if (op.type === 'remove') {
+            const comp = _ensureComp(op.componentId);
+            comp.delete(op.key);
+            _notifySubs(op.componentId, op.key, undefined);
+          } else if (op.type === 'metaPublish') {
+            metaContext.set(op.topic, op.new);
+            _notifyMetaSubs(op.topic, op.new);
+          }
+        } catch (e) { log('redo op failed', e); }
       }
-    } catch (e) {
-      log('persistEncode failed, falling back to raw JSON', e);
-      try { return JSON.stringify({ __v: 1, compressed: false, value: String(value), expires: expires || null }); } catch { return null; }
+      txPointer = Math.min(txPointer+1, txHistory.length-1);
+      redone++;
+    }
+    return { redone };
+  }
+
+  // hooks per-key
+  function addHook(componentId, key, phase, cb) {
+    if (!componentId || !key || !phase || typeof cb !== 'function') throw createError('invalid args','INVALID_ARGS');
+    if (!keyHooks.has(componentId)) keyHooks.set(componentId, new Map());
+    const km = keyHooks.get(componentId);
+    if (!km.has(key)) km.set(key, { before: [], after: [], error: [] });
+    km.get(key)[phase].push(cb);
+    return () => { km.get(key)[phase] = km.get(key)[phase].filter(fn => fn !== cb); };
+  }
+
+  async function _fireKeyHooks(componentId, key, phase, payload) {
+    try { for (const g of globalHooks[phase] || []) try { await Promise.resolve(g({ componentId, key, payload })); } catch (e) { log('global hook error', e); } } catch(_) {}
+    const km = keyHooks.get(componentId);
+    if (!km) return;
+    const bucket = km.get(key);
+    if (!bucket || !bucket[phase]) return;
+    for (const cb of bucket[phase].slice()) {
+      try { await Promise.resolve(cb(payload)); } catch (e) { log('key hook err', e); }
     }
   }
 
-  function persistDecode(storedStr) {
-    if (!storedStr) return null;
-    try {
-      const env = JSON.parse(storedStr);
-      if (env && env.__v === 1) {
-        if (env.compressed) {
-          const s = _atob(env.value);
-          return { value: JSON.parse(s), expires: env.expires || null };
-        }
-        return { value: env.value, expires: env.expires || null };
-      }
-    } catch (e) {
-      log('persistDecode parse failed; attempting legacy parse', e);
-      try {
-        // Legacy fallback: raw JSON or base64 heuristics
-        if (storedStr.startsWith('{') || storedStr.startsWith('[') || storedStr.startsWith('"')) {
-          return { value: JSON.parse(storedStr), expires: null };
-        } else {
-          // not safe to assume base64 -> try decode safely
-          try {
-            const decoded = _atob(storedStr);
-            return { value: JSON.parse(decoded), expires: null };
-          } catch { return null; }
-        }
-      } catch (e2) {
-        log('legacy parse failed', e2);
-        return null;
-      }
-    }
-    return null;
-  }
-
-  // Pluggable emitter for environments without document
-  function setEmitter(fn) {
-    customEmitter = typeof fn === 'function' ? fn : null;
-  }
-
-  function dispatchEvent(type, detail) {
-    if (customEmitter) {
-      try { customEmitter(type, detail); } catch (e) { log('customEmitter failed', e); }
-      return;
-    }
-    if (_hasDocument && typeof CustomEvent === 'function') {
-      try { document.dispatchEvent(new CustomEvent(type, { bubbles: true, detail })); }
-      catch (e) { log('dispatchEvent failed', e); }
-    } else {
-      log('Event dispatch skipped (no document/customEmitter)', type, detail);
-    }
-  }
-
-  // Validation helper (standardized signature)
-  async function validateState(componentId, key, value, validator) {
-    if (!validator) return true;
-    try {
-      // Support sync or async validators. Accept boolean true-ish return.
-      const r = await validator(componentId, key, value);
-      if (!r) throw new Error(`Invalid state value for ${componentId}:${key}`);
-      return true;
-    } catch (e) {
-      log(`Validation error for ${componentId}:${key}`, e);
-      throw e;
-    }
-  }
-
-  // Expiration check for in-memory entry (returns true if expired and removed)
-  function _checkExpirationInMemory(componentId, key) {
-    const entry = states.get(componentId)?.get(key);
-    if (entry && entry.expires && Date.now() > entry.expires) {
-      forget(componentId, key);
-      return true;
-    }
-    return false;
-  }
-
-  // Sync hash safe
-  function syncHash(componentId, key, value, format) {
-    try {
-      if (!_hasWindow || !('location' in window) || typeof URLSearchParams === 'undefined') return;
-      const hashStr = window.location.hash || '';
-      const hash = new URLSearchParams(hashStr.slice(1));
-      const serialized = format === 'json' ? JSON.stringify(value) : String(value);
-      hash.set(`${componentId}:${key}`, serialized);
-      window.location.hash = hash.toString();
-    } catch (e) {
-      log('syncHash failed', e);
-    }
-  }
-
-  // Subscriber helpers (non-blocking)
-  function notifySubscribers(componentId, key, value) {
-    const subKey = `${componentId}:${key}`;
-    if (!subscribers.has(subKey)) return;
-    for (const cb of subscribers.get(subKey)) {
-      try {
-        // prefer microtask
-        if (typeof queueMicrotask === 'function') {
-          queueMicrotask(() => { try { cb(value); } catch (e) { log(`Subscriber error for ${subKey}:`, e); } });
-        } else {
-          setTimeout(() => { try { cb(value); } catch (e) { log(`Subscriber error for ${subKey}:`, e); } }, 0);
-        }
-      } catch (e) {
-        // best-effort fallback
-        setTimeout(() => { try { cb(value); } catch (e2) { log(`Subscriber error for ${subKey}:`, e2); } }, 0);
+  // subscriptions
+  function subscribe(componentId, key, cb) { const sk = _subKey(componentId, key); if (!subscribers.has(sk)) subscribers.set(sk, new Set()); subscribers.get(sk).add(cb); return () => subscribers.get(sk).delete(cb); }
+  function _notifySubs(componentId, key, value, meta) { const s = subscribers.get(_subKey(componentId,key)); if (!s) return; for (const cb of Array.from(s)) try { cb(value, meta); } catch (e) { log('sub error', e); } // update any DOM bindings for this key
+    if (typeof document !== 'undefined') {
+      // update bound elements synchronously
+      for (const [el, info] of Array.from(domBindings.entries ? domBindings.entries() : []) ) {
+        try {
+          if (info.componentId === componentId && info.key === key) {
+            if (info.syncInput && ('value' in el)) el.value = value == null ? '' : value;
+            else el.textContent = value == null ? '' : String(value);
+          }
+        } catch(_) {}
       }
     }
   }
 
-  // Public: subscribe/unsubscribe
-  function subscribe(componentId, key, callback) {
-    const subKey = `${componentId}:${key}`;
-    if (!subscribers.has(subKey)) subscribers.set(subKey, []);
-    subscribers.get(subKey).push(callback);
-    return () => {
-      subscribers.set(subKey, subscribers.get(subKey).filter(cb => cb !== callback));
-    };
+  // meta-context / synergy
+  function publishMeta(topic, payload) {
+    const prev = metaContext.has(topic) ? metaContext.get(topic) : undefined;
+    metaContext.set(topic, payload);
+    _recordTx({ type: 'metaPublish', topic, prev, new: payload });
+    _notifyMetaSubs(topic, payload);
   }
-  function batchSubscribe(componentId, keys, callback) {
-    return (keys || []).map(k => subscribe(componentId, k, callback));
-  }
+  function onMeta(topic, cb) { if (!metaSubs.has(topic)) metaSubs.set(topic, new Set()); metaSubs.get(topic).add(cb); return () => metaSubs.get(topic).delete(cb); }
+  function _notifyMetaSubs(topic, payload) { const s = metaSubs.get(topic); if (!s) return; for (const cb of Array.from(s)) try { cb(payload); } catch (e) { log('meta sub error', e); } }
 
-  function unsubscribeAll(componentId, key = null) {
-    if (key) subscribers.delete(`${componentId}:${key}`);
-    else {
-      for (const k of Array.from(subscribers.keys()).filter(k => k.startsWith(componentId + ':'))) {
-        subscribers.delete(k);
-      }
-    }
-  }
-
-  // Hook registration
-  function addGlobalHook(phase, callback) {
-    if (globalHooks[phase]) globalHooks[phase].push(callback);
-    return () => { globalHooks[phase] = globalHooks[phase].filter(cb => cb !== callback); };
-  }
-  function addComponentHook(componentId, phase, callback) {
-    if (!componentHooks.has(componentId)) componentHooks.set(componentId, { beforeSet: [], afterSet: [], error: [] });
-    componentHooks.get(componentId)[phase].push(callback);
-    return () => {
-      componentHooks.get(componentId)[phase] = componentHooks.get(componentId)[phase].filter(cb => cb !== callback);
-    };
-  }
-
-  async function fireHooks(componentId, phase, payload) {
-    // run global hooks concurrently but settled
-    const ghooks = Array.from(globalHooks[phase] || []);
-    await Promise.allSettled(ghooks.map(cb => (async () => {
-      try { return await cb(payload); } catch (e) { log(`Global ${phase} hook error`, e); throw e; }
-    })()));
-
-    if (componentHooks.has(componentId)) {
-      const chooks = Array.from(componentHooks.get(componentId)[phase] || []);
-      // run component hooks concurrently, but errors do not prevent others
-      await Promise.allSettled(chooks.map(cb => (async () => {
-        try { return await cb(payload); } catch (e) { log(`Component ${phase} hook error`, e); throw e; }
-      })()));
-    }
-  }
-
-  // Core: set a state value
-  async function set(componentId, key, value, options = {}) {
-    const startTime = now();
-    if (!componentId || !key) throw new Error('componentId and key are required for set()');
-
-    if (!states.has(componentId)) states.set(componentId, new Map());
-
-    const { persist = false, compress = false, validator = null, hashFormat = 'json', expires } = options;
-
-    try {
-      await validateState(componentId, key, value, validator);
-      await fireHooks(componentId, 'beforeSet', { componentId, key, value, persist, options });
-
-      const expirationTimestamp = (typeof expires === 'number') ? (Date.now() + expires) : undefined;
-      states.get(componentId).set(key, { value, expires: expirationTimestamp, meta: { options } });
-
-      // push history entry
-      stateHistory.push({
-        componentId, key, value, persist, time: Date.now(), performance: { duration: now() - startTime }
+  function registerDependency(targetComponentId, targetKey, sources = [], resolver) {
+    const tkey = _subKey(targetComponentId, targetKey);
+    dependencies.set(tkey, { sources: sources.slice(), resolver: typeof resolver === 'function' ? resolver : null });
+    // subscribe to sources
+    for (const s of sources) {
+      subscribe(s.componentId, s.key, async () => {
+        try {
+          const dep = dependencies.get(tkey);
+          if (!dep) return;
+          const ctx = {};
+          for (const src of dep.sources) ctx[`${src.componentId}:${src.key}`] = get(src.componentId, src.key);
+          if (dep.resolver) {
+            const newVal = await Promise.resolve(dep.resolver(ctx));
+            await set(targetComponentId, targetKey, newVal);
+          }
+        } catch (e) { log('dependency resolver error', e); }
       });
-      if (stateHistory.length > maxHistoryLength) stateHistory.splice(0, stateHistory.length - maxHistoryLength);
+    }
+  }
 
-      // persist with envelope
-      if (persist) {
-        const envStr = persistEncode(value, { compressed: !!compress, expires: expirationTimestamp || null });
-        if (envStr !== null) safeSetItem(`${STORAGE_PREFIX}${componentId}:${key}`, envStr);
-      }
+  // storage helpers
+  function setStorageMode(mode = 'session') { storageMode = mode; if (typeof window === 'undefined') storage = null; else if (mode === 'local') storage = window.localStorage; else if (mode === 'session') storage = window.sessionStorage; else storage = null; log('storageMode', storageMode); }
+  function _persist(componentId, key, val, opts = {}) { if (!storage) return; try { const fullKey = PREFIX + componentId + ':' + key; const payload = opts.compress ? btoa(JSON.stringify(val)) : JSON.stringify(val); storage.setItem(fullKey, payload); } catch(e){ log('persist err', e); } }
+  function _restore(componentId, key) { if (!storage) return undefined; try { const fullKey = PREFIX + componentId + ':' + key; const raw = storage.getItem(fullKey); if (!raw) return undefined; try { return JSON.parse(raw); } catch (e) { try { return JSON.parse(atob(raw)); } catch(_) { return undefined; } } } catch(e){ return undefined; } }
 
-      dispatchEvent(`${eventPrefix}changed`, { componentId, key, value });
-      syncHash(componentId, key, value, hashFormat);
-      notifySubscribers(componentId, key, value);
-
-      await fireHooks(componentId, 'afterSet', {
-        componentId, key, value, persist, performance: { duration: now() - startTime }
-      });
-
-      log(`State set: ${componentId}:${key}`, value);
+  // set (records tx, fires hooks, updates subs, persists)
+  async function set(componentId, key, value, opts = {}) {
+    const t0 = now();
+    if (!componentId || !key) throw createError('componentId and key required','INVALID_ARGS');
+    const comp = _ensureComp(componentId);
+    const prevEntry = comp.has(key) ? comp.get(key) : undefined;
+    const prev = prevEntry ? { value: prevEntry.value, meta: prevEntry.meta } : undefined;
+    _recordTx({ type: 'set', componentId, key, prev, new: { value, meta: opts.meta || null } });
+    try {
+      await _fireKeyHooks(componentId, key, 'before', { componentId, key, prev, value, opts });
+      for (const g of globalHooks.beforeSet) try { await Promise.resolve(g({ componentId, key, prev, value, opts })); } catch (e) { log('global beforeSet err', e); }
+      if (opts.validator && typeof opts.validator === 'function') { const ok = await Promise.resolve(opts.validator(value)); if (!ok) throw createError('validator rejected value','VALIDATOR_REJECT'); }
+      comp.set(key, { value, meta: { persisted: !!opts.persist, expires: opts.expires ? Date.now() + opts.expires : undefined } });
+      if (opts.persist) _persist(componentId, key, value, opts);
+      _notifySubs(componentId, key, value, comp.get(key).meta);
+      await _fireKeyHooks(componentId, key, 'after', { componentId, key, prev, value, opts });
+      for (const g of globalHooks.afterSet) try { await Promise.resolve(g({ componentId, key, prev, value, opts })); } catch (e) { log('global afterSet err', e); }
+      const dur = now() - t0;
+      const m = _ensureMetrics(componentId, key); m.setCount++; m.avgTime = (m.avgTime * (m.setCount - 1) + dur) / m.setCount;
+      _histPush({ op: 'set', componentId, key, value, time: Date.now(), error: null, performance: { duration: dur } });
+      // trigger dependencies (handled via registerDependency subscriptions too)
       return { ok: true };
     } catch (e) {
-      log(`Error setting state ${componentId}:${key}:`, e);
-      await fireHooks(componentId, 'error', { componentId, key, value, error: e });
-      dispatchEvent(`${eventPrefix}error`, { componentId, key, value, error: e });
+      const dur = now() - t0;
+      _ensureMetrics(componentId, key).errors++;
+      await _fireKeyHooks(componentId, key, 'error', { componentId, key, error: e });
+      for (const g of globalHooks.error) try { await Promise.resolve(g({ componentId, key, error: e })); } catch (ee) { log('global error hook failed', ee); }
+      _histPush({ op: 'set', componentId, key, value, time: Date.now(), error: e, performance: { duration: dur } });
       throw e;
     }
   }
 
-  // Batch state updates with optional concurrency
-  async function batchSet(componentId, updates = [], opts = {}) {
-    const startTime = now();
-    if (!Array.isArray(updates)) throw new Error('batchSet requires updates array');
-    const { concurrency = 1, stopOnError = false } = opts;
-
-    const queue = Array.from(updates); // shallow copy
-    const results = [];
-
-    const worker = async () => {
-      while (queue.length) {
-        const { key, value, options } = queue.shift();
-        try {
-          await set(componentId, key, value, options || {});
-          results.push({ key, ok: true });
-        } catch (err) {
-          results.push({ key, ok: false, error: err });
-          if (stopOnError) queue.length = 0;
-        }
+  // get (restore persisted if needed)
+  function get(componentId, key, { restore = true } = {}) {
+    if (!componentId || !key) throw createError('componentId and key required','INVALID_ARGS');
+    const comp = _ensureComp(componentId);
+    if (comp.has(key)) {
+      const ent = comp.get(key);
+      if (ent.meta && ent.meta.expires && Date.now() > ent.meta.expires) {
+        comp.delete(key);
+        _histPush({ op: 'expire', componentId, key, time: Date.now(), error: createError('expired','EXPIRED') });
+        _notifySubs(componentId, key, undefined);
+        return undefined;
       }
-    };
-
-    const workers = Array.from({ length: Math.max(1, concurrency) }, worker);
-    await Promise.allSettled(workers);
-
-    log(`Batch update completed for ${componentId}`, { count: updates.length, duration: now() - startTime });
-    dispatchEvent(`${eventPrefix}batchApplied`, { componentId, count: updates.length, duration: now() - startTime });
-    return { duration: now() - startTime, results };
-  }
-
-  // getWithMeta returns value plus metadata
-  function getWithMeta(componentId, key) {
-    // check in-memory expiration first
-    if (_checkExpirationInMemory(componentId, key)) return { value: undefined, persisted: false, expires: null };
-
-    if (states.has(componentId) && states.get(componentId).has(key)) {
-      const entry = states.get(componentId).get(key);
-      return { value: entry.value, persisted: false, expires: entry.expires || null, source: 'memory', meta: entry.meta || null };
+      _histPush({ op: 'get', componentId, key, value: ent.value, time: Date.now(), error: null, performance: { duration: 0 } });
+      return ent.value;
     }
-
-    // check persisted storage
-    const raw = safeGetItem(`${STORAGE_PREFIX}${componentId}:${key}`);
-    const decoded = persistDecode(raw);
-    if (!decoded) return { value: undefined, persisted: false, expires: null };
-    if (decoded.expires && Date.now() > decoded.expires) {
-      // expired persisted entry
-      forget(componentId, key);
-      return { value: undefined, persisted: false, expires: null };
-    }
-    // return persisted value (but not yet in memory)
-    return { value: decoded.value, persisted: true, expires: decoded.expires || null, source: 'persist' };
-  }
-
-  // get() convenience - returns value or undefined
-  function get(componentId, key) {
-    const meta = getWithMeta(componentId, key);
-    return meta.value;
-  }
-
-  // batchGet: keys array or all keys in component
-  function batchGet(componentId, keys = null) {
-    if (!componentId) return {};
-    const result = {};
-    if (keys && Array.isArray(keys)) {
-      for (const k of keys) result[k] = get(componentId, k);
-      return result;
-    }
-    // include in-memory keys and persisted keys that might not be in memory
-    const seen = new Set();
-    if (states.has(componentId)) {
-      for (const [k, entry] of states.get(componentId).entries()) {
-        result[k] = entry.value;
-        seen.add(k);
+    if (restore && storage) {
+      const restored = _restore(componentId, key);
+      if (restored !== undefined) {
+        comp.set(key, { value: restored, meta: { persisted: true } });
+        _histPush({ op: 'get', componentId, key, value: restored, time: Date.now(), error: null, performance: { duration: 0 } });
+        _notifySubs(componentId, key, restored);
+        return restored;
       }
     }
-    // try to enumerate persisted keys if storage available
-    if (storage) {
-      try {
-        for (let i = 0; i < storage.length; i++) {
-          const k = storage.key(i);
-          if (!k) continue;
-          if (k.startsWith(`${STORAGE_PREFIX}${componentId}:`)) {
-            const keyPart = k.slice((STORAGE_PREFIX + componentId + ':').length);
-            if (!seen.has(keyPart)) {
-              const decoded = persistDecode(safeGetItem(k));
-              if (decoded && (!decoded.expires || Date.now() <= decoded.expires)) result[keyPart] = decoded.value;
-            }
-          }
-        }
-      } catch (e) {
-        log('batchGet storage enumeration failed', e);
+    return undefined;
+  }
+
+  // batch set with concurrency
+  async function batchSet(componentId, updates = [], { concurrency = 4, stopOnError = false } = {}) {
+    if (!Array.isArray(updates)) throw createError('updates must be array','INVALID_ARG');
+    const results = {};
+    let i = 0;
+    const runners = new Array(Math.min(concurrency, updates.length)).fill(0).map(async () => {
+      while (i < updates.length) {
+        const idx = i++;
+        const { key, value, opts } = updates[idx];
+        try { results[key] = await set(componentId, key, value, opts); } catch (e) { results[key] = { error: e }; if (stopOnError) throw e; }
       }
-    }
-    return result;
+    });
+    await Promise.all(runners);
+    return results;
   }
 
-  // Pattern-based lookup (supports wildcard suffix and RegExp string '/.../')
-  function findKeys(componentId, pattern) {
-    const keys = new Set();
-    if (states.has(componentId)) {
-      for (const k of states.get(componentId).keys()) keys.add(k);
-    }
-    // include persisted keys
-    if (storage) {
-      try {
-        for (let i = 0; i < storage.length; i++) {
-          const k = storage.key(i);
-          if (!k) continue;
-          if (k.startsWith(`${STORAGE_PREFIX}${componentId}:`)) {
-            const keyPart = k.slice((STORAGE_PREFIX + componentId + ':').length);
-            keys.add(keyPart);
-          }
-        }
-      } catch (e) { log('findKeys storage enumeration failed', e); }
-    }
-    if (!pattern) return Array.from(keys);
-    if (pattern.endsWith('*')) {
-      const prefix = pattern.slice(0, -1);
-      return Array.from(keys).filter(k => k.startsWith(prefix));
-    }
-    if (pattern.startsWith('/') && pattern.endsWith('/')) {
-      try {
-        const re = new RegExp(pattern.slice(1, -1));
-        return Array.from(keys).filter(k => re.test(k));
-      } catch (e) { return []; }
-    }
-    return Array.from(keys).filter(k => k === pattern);
+  function batchGet(componentId, keys = []) { if (!Array.isArray(keys)) throw createError('keys must be array','INVALID_ARG'); const out = {}; for (const k of keys) out[k] = get(componentId, k); return out; }
+
+  // remove
+  function remove(componentId, key) {
+    const comp = _ensureComp(componentId);
+    const prev = comp.has(key) ? comp.get(key) : undefined;
+    _recordTx({ type: 'remove', componentId, key, prev });
+    comp.delete(key);
+    try { if (storage) storage.removeItem(PREFIX + componentId + ':' + key); } catch(_) {}
+    _histPush({ op: 'remove', componentId, key, time: Date.now(), error: null });
+    _notifySubs(componentId, key, undefined);
+    return { ok: true };
   }
 
-  // forget - remove from memory and persisted storage, notify
-  function forget(componentId, key) {
-    if (!componentId || !key) return;
-    if (states.has(componentId)) {
-      states.get(componentId).delete(key);
-    }
-    safeRemoveItem(`${STORAGE_PREFIX}${componentId}:${key}`);
-    dispatchEvent(`${eventPrefix}forgot`, { componentId, key });
-    notifySubscribers(componentId, key, undefined);
-    log(`Forgot state: ${componentId}:${key}`);
-  }
-
-  // History accessors
-  function getHistory(filter = {}) {
-    let result = Array.from(stateHistory);
-    if (filter.componentId) result = result.filter(e => e.componentId === filter.componentId);
-    if (filter.key) result = result.filter(e => e.key === filter.key);
-    if (filter.maxAge) result = result.filter(e => e.time >= Date.now() - filter.maxAge);
-    if (filter.errorOnly) result = result.filter(e => !!e.error);
-    if (filter.predicate) result = result.filter(filter.predicate);
-    return result;
-  }
-  function clearHistory() { stateHistory.length = 0; log('State history cleared'); }
-  function setHistoryCap(cap) {
-    maxHistoryLength = Math.max(0, cap);
-    if (stateHistory.length > maxHistoryLength) stateHistory.splice(0, stateHistory.length - maxHistoryLength);
-    log('History cap set:', maxHistoryLength);
-  }
-
-  // Introspection
-  function getRegistry() {
-    const out = {};
-    for (const [cid, kv] of states.entries()) {
-      out[cid] = {};
-      for (const [k, entry] of kv.entries()) {
-        out[cid][k] = { value: entry.value, expires: entry.expires || null, meta: entry.meta || null };
-      }
-    }
-    return out;
-  }
-  function listComponents() { return Array.from(states.keys()); }
-  function listKeys(componentId) { return states.has(componentId) ? Array.from(states.get(componentId).keys()) : []; }
-  function validateAllStates() {
-    return Array.from(states.entries()).map(([cid, kv]) => ({
-      componentId: cid,
-      keys: Array.from(kv.entries()).map(([key, entry]) => ({ key, valid: true }))
-    }));
-  }
-  function filterStatesBy(predicate) {
-    const result = [];
-    for (const [cid, kv] of states.entries()) {
-      for (const [key, entry] of kv.entries()) {
-        if (predicate(cid, key, entry.value)) result.push({ componentId: cid, key, value: entry.value });
-      }
-    }
-    return result;
-  }
-
-  // Debug control
-  function setDebug(val) { debug = !!val; }
-
-  // Initialization: load hash state if present (safe)
-  async function _initFromHash() {
-    if (!_hasWindow || !window.location || !window.location.hash) return;
+  // DOM binding: find elements with data-state="component:key" and bind them
+  function bindElement(el, { componentId, key, attr = 'text', syncInput = true } = {}) {
+    if (!(el instanceof Element)) throw createError('element required','INVALID_ARG');
+    domBindings.set(el, { componentId, key, attr, syncInput });
+    // initialize from state
+    const val = get(componentId, key);
     try {
-      const hash = new URLSearchParams(window.location.hash.slice(1));
-      for (const [param, value] of hash.entries()) {
-        const [componentId, key] = param.split(':');
-        if (!componentId || !key) continue;
-        try {
-          const parsed = (value.startsWith('{') || value.startsWith('[') || value.startsWith('"'))
-            ? JSON.parse(value)
-            : value;
-          // persist loaded hash entries by default
-          await set(componentId, key, parsed, { persist: true });
-        } catch (e) { log(`Error loading state from hash ${param}:`, e); }
-      }
-    } catch (e) { log('initFromHash failed', e); }
-  }
-
-  // Attempt to initialize on DOMContentLoaded if available
-  try {
-    if (_hasDocument) {
-      document.addEventListener('DOMContentLoaded', () => { _initFromHash().then(() => log('StateEngine initialized (DOM)')).catch(() => {}); });
-    } else {
-      // no document - try immediate init for non-DOM environment
-      _initFromHash().then(() => log('StateEngine initialized (no DOM)')).catch(() => {});
+      if (syncInput && ('value' in el)) el.value = val == null ? '' : val;
+      else el.textContent = val == null ? '' : String(val);
+    } catch(_) {}
+    // if input-like, listen for changes to reflect into state
+    if (syncInput && ('value' in el)) {
+      const handler = (ev) => {
+        const newVal = el.value;
+        set(componentId, key, newVal).catch(e => log('dom->state set error', e));
+      };
+      el.addEventListener('input', handler);
+      _recordTx({ type: 'domBind', element: el, handler });
+      return () => { el.removeEventListener('input', handler); domBindings.delete(el); };
     }
-  } catch (e) {
-    log('Initialization wrapper error', e);
+    return () => { domBindings.delete(el); };
   }
 
-  // Exported API
-  return {
-    // core
-    set,
-    get,
-    getWithMeta,
-    batchSet,
-    batchGet,
-    forget,
-    findKeys,
+  // auto-bind all elements with data-state on DOMContentLoaded
+  function _autoBind(root = document) {
+    if (typeof document === 'undefined') return;
+    try {
+      const nodes = root.querySelectorAll('[data-state]');
+      for (const n of Array.from(nodes)) {
+        const attr = n.getAttribute('data-state') || '';
+        const [componentId, key] = attr.split(':').map(s => s && s.trim());
+        if (componentId && key) bindElement(n, { componentId, key, attr: 'text', syncInput: n.matches('input,textarea,[contenteditable]') });
+      }
+    } catch (e) { log('autoBind err', e); }
+  }
+  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => _autoBind(document));
 
-    // storage & emitter
-    setStorage,
-    setEmitter,
+  // meta/context helpers
+  function getMeta(topic) { return metaContext.get(topic); }
+  function listDependencies() { return Object.fromEntries(Array.from(dependencies.entries())); }
 
-    // hooks
-    addGlobalHook,
-    addComponentHook,
+  // history access
+  function getHistory(filter = {}) {
+    let res = history.slice();
+    if (filter.componentId) res = res.filter(h => h.componentId === filter.componentId);
+    if (filter.key) res = res.filter(h => h.key === filter.key);
+    if (filter.op) res = res.filter(h => h.op === filter.op);
+    if (filter.maxAge) res = res.filter(h => h.time >= Date.now() - filter.maxAge);
+    if (filter.errorOnly) res = res.filter(h => !!h.error);
+    if (filter.predicate) res = res.filter(filter.predicate);
+    return res;
+  }
+  function clearHistory() { history.length = 0; }
+  function getRegistry() { const out = {}; for (const [cid,map] of states.entries()) out[cid] = Object.fromEntries(map.entries()); return out; }
+  function getMetrics() { return Object.fromEntries(metrics.entries()); }
 
-    // history
-    getHistory,
-    clearHistory,
-    setHistoryCap,
+  // debug toggle
+  function setDebug(v = true) { debug = !!v; log('debug', debug); }
 
-    // debug & introspection
-    setDebug,
-    getRegistry,
-    listComponents,
-    listKeys,
-    validateAllStates,
-    filterStatesBy,
+  // attach external API conveniences
+  function attachStateAPI(api) { if (!api) return () => {}; // expects { set, get, subscribe, batchSet } optional
+    if (api.set) StateEngine.set = api.set; if (api.get) StateEngine.get = api.get; if (api.subscribe) StateEngine.subscribe = api.subscribe; return () => { /* noop - cannot detach replaced fns */ }; }
 
-    // subscriptions
-    subscribe,
-    batchSubscribe,
-    unsubscribeAll,
-
-    // meta
-    __internal: { _persistEncode: persistEncode, _persistDecode: persistDecode } // for testing/debug only
+  // public API
+  const StateEngine = {
+    set, get, batchSet, batchGet, remove,
+    subscribe, addHook, addGlobalHook: (phase, cb) => { if (!globalHooks[phase]) throw createError('invalid phase','INVALID_PHASE'); globalHooks[phase].push(cb); return () => { globalHooks[phase] = globalHooks[phase].filter(x => x !== cb); }; },
+    beginTransaction, commitTransaction, rollbackTransaction, undo, redo,
+    getRegistry, getHistory, clearHistory, setHistoryCap, getMetrics,
+    setDebug, setStorageMode, attachStateAPI,
+    // meta/synergy
+    publishMeta, onMeta, getMeta, registerDependency, listDependencies,
+    // DOM
+    bindElement, _autoBind,
+    // internals for inspection
+    _internal: { states, subscribers, keyHooks, metaContext, dependencies, txHistory }
   };
+
+  return StateEngine;
 })();
 
 export default StateEngine;
