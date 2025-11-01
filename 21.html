@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CogniSpere Interactive Demo (ES Modules)</title>
+
+  <!-- Correct CSS Order -->
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/theme.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/typography.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/utilities.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+
+  <style>
+    body, html { margin: 0; height: 100%; background: var(--primary-0); display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    canvas { display: block; border: 2px solid var(--accent-2); }
+    .ui-panel { position: absolute; top: 20px; left: 20px; background: var(--accent-1); padding: var(--space-4); border-radius: var(--radius-md); box-shadow: var(--elevation-2); }
+    .ui-panel button { padding: var(--space-2) var(--space-4); margin-top: var(--space-2); background: var(--accent-3); border: none; border-radius: var(--radius-sm); color: var(--primary-0); cursor: pointer; transition: transform 0.2s ease; }
+    .ui-panel button:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+
+  <canvas id="sceneCanvas" width="800" height="600"></canvas>
+
+  <div class="ui-panel">
+    <h3>Interactive Controls</h3>
+    <button id="spawnBtn">Spawn Circle</button>
+    <button id="clearBtn">Clear Canvas</button>
+  </div>
+
+  <!-- Module Script -->
+  <script type="module">
+    // Import all ES modules
+    import './assets/scripts/archetypeEngine.js';
+    import './assets/scripts/domEngine.js';
+    import './assets/scripts/eventEngine.js';
+    import './assets/scripts/gestureEngine.js';
+    import './assets/scripts/hookEngine.js';
+    import './assets/scripts/symbolEngine.js';
+    import './assets/scripts/narrativeEngine.js';
+    import './assets/scripts/memoryEngine.js';
+    import './assets/scripts/stateEngine.js';
+    import './assets/scripts/layoutEngine.js';
+    import './assets/scripts/synergyEngine.js';
+    import './assets/scripts/DOM3DtoGPUbridge.js';
+    import './assets/scripts/web-3d.js';
+
+    // Canvas demo code
+    const canvas = document.getElementById('sceneCanvas');
+    const ctx = canvas.getContext('2d');
+    let objects = [];
+
+    function animate() {
+      ctx.fillStyle = 'var(--primary-0)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      objects.forEach(obj => {
+        ctx.beginPath();
+        ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+        ctx.fillStyle = obj.color;
+        ctx.fill();
+        obj.x += obj.vx;
+        obj.y += obj.vy;
+        if (obj.x - obj.radius < 0 || obj.x + obj.radius > canvas.width) obj.vx *= -1;
+        if (obj.y - obj.radius < 0 || obj.y + obj.radius > canvas.height) obj.vy *= -1;
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // UI button interactions
+    document.getElementById('spawnBtn').addEventListener('click', () => {
+      objects.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: 20 + Math.random() * 30,
+        vx: (Math.random() - 0.5) * 6,
+        vy: (Math.random() - 0.5) * 6,
+        color: `hsl(${Math.random() * 360}, 80%, 60%)`
+      });
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => objects = []);
+  </script>
+
+</body>
+</html>
