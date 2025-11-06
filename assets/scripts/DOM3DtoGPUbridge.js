@@ -1,6 +1,7 @@
 // DOM3DToGPUBridge.js
 // Enhanced with hooks/events, transactions, undo/redo, history, meta/synergy awareness, and conditional logic.
 // Minimal, non-invasive additions; original rendering logic preserved.
+import * as THREE from './three.module.js';
 
 
 // Utility for performance monitoring
@@ -807,4 +808,5 @@ fn fs_main(@location(0) uv: vec2<f32>, @location(1) scale: f32) -> @location(0) 
 }
 
 // tiny helper
+
 function isFunction(v) { return typeof v === 'function'; }
