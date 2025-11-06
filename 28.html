@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOM3D + GPU Bridge Test</title>
+  <style>
+    body, html { margin: 0; height: 100%; overflow: hidden; background: #111; }
+    canvas { display: block; }
+    .anchor-label {
+      position: absolute;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 4px;
+      font-family: sans-serif;
+      font-size: 14px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="domRoot"></div>
+  <script type="module">
+    import * as THREE from './assets/scripts/three.module.js';
+    import DOM3DManager from './assets/scripts/web-3d.js';
+    import DOM3DToGPUBridge from './assets/scripts/DOM3DtoGPUbridge.js';
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const domRoot = document.getElementById('domRoot');
+    const dom3d = new DOM3DManager({ scene, camera, renderer, domRoot, autoUpdate: true });
+
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0xff3366 })
+    );
+    scene.add(sphere);
+
+    const label = document.createElement('div');
+    label.className = 'anchor-label';
+    label.textContent = 'DOM Author';
+    domRoot.appendChild(label);
+    dom3d.attach(label, sphere, { fadeDistance: { near: 2, far: 10 } });
+
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(1, 2, 3).normalize();
+    scene.add(light);
+
+    camera.position.z = 5;
+
+    // ✅ Let GPU bridge create its own canvas — do NOT pass renderer.domElement
+    const bridge = new DOM3DToGPUBridge({ dom3d });
+    await bridge.init();
+    bridge.start();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      sphere.rotation.y += 0.01;
+      bridge.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
