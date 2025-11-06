@@ -1,4 +1,6 @@
 
+import * as THREE from './three.module.js';
+
 // Utility for debouncing
 const debounce = (func, wait) => {
   let timeout;
@@ -659,4 +661,5 @@ export default class DOM3DManager {
     this.narrativeAPI = null;
     this.hookAPI = null;
   }
+
 }
