@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Engine & Layer Metadata</title>
+  <style>
+    body { font-family: monospace; background:#f9f9f9; color:#111; padding:16px; }
+    .block { margin-bottom:24px; border:1px solid #ddd; background:#fff; padding:12px; }
+    .title { font-weight:700; margin-bottom:8px; }
+    pre { white-space: pre-wrap; word-break: break-word; margin:0; }
+    .json-visible { max-height:360px; overflow:auto; border-top:1px solid #eee; padding-top:8px; margin-top:8px; }
+  </style>
+</head>
+<body>
+
+<div class="block" data-engine="DesignTokens">
+  <div class="title">DesignTokens</div>
+  <pre class="json-visible">{
+  "name": "DesignTokens",
+  "version": "1.0.0",
+  "description": "Final production design tokens: color system, typography scale, spacing, motion, elevation, and accessibility primitives. Serves as the single source of truth for all layers.",
+  "url": "https://github.com/your-repo/tokens.css",
+  "category": ["css", "tokens", "foundation", "theme", "a11y"],
+  "provides": [
+    "Color palette with semantic aliases and theme support (light/dark/forced-colors)",
+    "Typography scale with font shorthand tokens (--h1–--h6) and fluid base sizing",
+    "Spacing, layout, and density tokens for consistent rhythm and scale",
+    "Elevation and shadow layers with dark theme adjustments",
+    "Motion and transition timing tokens with reduced-motion handling",
+    "Accessibility tokens for focus, contrast, and touch targets",
+    "Form primitives for consistent input spacing and borders"
+  ],
+  "targets": [
+    ":root",
+    ":root[data-theme=\"dark\"]",
+    ":root[data-density]",
+    "@media (prefers-reduced-motion)",
+    "@media (prefers-contrast: more)",
+    "@media (forced-colors: active)"
+  ],
+  "variablesDefined": {
+    "colors": [
+      "--primary-*", "--accent-*", "--success-*", "--warning-*", "--danger-*", "--info-*",
+      "--gray-*", "--overlay-*",
+      "--bg-*", "--text-*", "--brand-*", "--accent-default", "--success-default", "--warning-default", "--danger-default", "--info-default",
+      "--border-subtle", "--border-strong", "--interactive-primary", "--interactive-primary-contrast"
+    ],
+    "typography": [
+      "--font-family-sans", "--font-family-mono",
+      "--fs-xs", "--fs-sm", "--fs-base", "--fs-lg", "--fs-xl", "--fs-2xl", "--fs-3xl", "--fs-4xl",
+      "--fw-regular", "--fw-medium", "--fw-semibold", "--fw-bold",
+      "--lh-tight", "--lh-default", "--lh-loose",
+      "--h1", "--h2", "--h3", "--h4", "--h5", "--h6"
+    ],
+    "spacing": [
+      "--space-0", "--space-0-5", "--space-1", "--space-1-5", "--space-2", "--space-2-5",
+      "--space-3", "--space-4", "--space-5", "--space-6", "--space-8", "--space-10",
+      "--gutter", "--container-padding"
+    ],
+    "density": [
+      "--density-compact-mult", "--density-cozy-mult"
+    ],
+    "layout": [
+      "--max-w-xs", "--max-w-sm", "--max-w-md", "--max-w-lg", "--max-w-xl",
+      "--bp-xs", "--bp-sm", "--bp-md", "--bp-lg", "--bp-xl",
+      "--radius-sm", "--radius-md", "--radius-lg", "--radius-xl", "--radius"
+    ],
+    "elevation": [
+      "--elevation-0", "--elevation-1", "--elevation-2", "--elevation-3"
+    ],
+    "motion": [
+      "--dur-quick", "--dur-short", "--dur-medium", "--dur-long",
+      "--ease-standard", "--ease-decel", "--transition-default", "--reduced-motion"
+    ],
+    "a11y": [
+      "--focus-width", "--focus-offset", "--focus-color", "--focus-outline",
+      "--control-min-h", "--touch-target", "--control-focus-shadow"
+    ],
+    "forms": [
+      "--form-padding-y", "--form-padding-x", "--form-font-size",
+      "--form-border", "--form-radius", "--form-bg", "--form-disabled-bg"
+    ],
+    "dev": [
+      "--dbg-grid", "--dbg-outline"
+    ]
+  },
+  "features": {
+    "themeSupport": "Supports light, dark, and forced-color modes via data-theme and media queries",
+    "semanticColorSystem": "Uses neutral and brand scales mapped to semantic roles",
+    "fluidTypography": "Implements fluid scaling between min/max type sizes",
+    "densityModes": "Supports compact and cozy layouts via CSS custom property multipliers",
+    "a11yEnhancements": "Tokens for focus outlines, high-contrast preference, and reduced motion",
+    "formSystem": "Defines spacing, borders, and background tokens for form controls"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px"
+    },
+    "densityModes": ["compact", "cozy"]
+  },
+  "a11y": {
+    "contrastModes": "Adjusts focus and border tokens when prefers-contrast: more",
+    "motionReduction": "Disables transitions when prefers-reduced-motion is active",
+    "forcedColors": "Overrides key tokens with system colors for accessibility"
+  },
+  "integrationNotes": [
+    "Must be imported first in the CSS cascade.",
+    "Other layers (typography, layout, components) consume these tokens via var().",
+    "Supports runtime theming via [data-theme] and density via [data-density].",
+    "Can be extended or overridden by theme-specific token layers."
+  ],
+  "aliases": {
+    "brand": "primary",
+    "neutral": "gray"
+  },
+  "related": ["base.css", "typography.css", "layout.css", "components.css"]
+}</pre>
+
+  <script type="application/json" data-engine="DesignTokens">
+{
+  "name": "DesignTokens",
+  "version": "1.0.0",
+  "description": "Final production design tokens: color system, typography scale, spacing, motion, elevation, and accessibility primitives. Serves as the single source of truth for all layers.",
+  "url": "https://github.com/your-repo/tokens.css",
+  "category": ["css", "tokens", "foundation", "theme", "a11y"],
+  "provides": [
+    "Color palette with semantic aliases and theme support (light/dark/forced-colors)",
+    "Typography scale with font shorthand tokens (--h1–--h6) and fluid base sizing",
+    "Spacing, layout, and density tokens for consistent rhythm and scale",
+    "Elevation and shadow layers with dark theme adjustments",
+    "Motion and transition timing tokens with reduced-motion handling",
+    "Accessibility tokens for focus, contrast, and touch targets",
+    "Form primitives for consistent input spacing and borders"
+  ],
+  "targets": [
+    ":root",
+    ":root[data-theme=\"dark\"]",
+    ":root[data-density]",
+    "@media (prefers-reduced-motion)",
+    "@media (prefers-contrast: more)",
+    "@media (forced-colors: active)"
+  ],
+  "variablesDefined": {
+    "colors": [
+      "--primary-*", "--accent-*", "--success-*", "--warning-*", "--danger-*", "--info-*",
+      "--gray-*", "--overlay-*",
+      "--bg-*", "--text-*", "--brand-*", "--accent-default", "--success-default", "--warning-default", "--danger-default", "--info-default",
+      "--border-subtle", "--border-strong", "--interactive-primary", "--interactive-primary-contrast"
+    ],
+    "typography": [
+      "--font-family-sans", "--font-family-mono",
+      "--fs-xs", "--fs-sm", "--fs-base", "--fs-lg", "--fs-xl", "--fs-2xl", "--fs-3xl", "--fs-4xl",
+      "--fw-regular", "--fw-medium", "--fw-semibold", "--fw-bold",
+      "--lh-tight", "--lh-default", "--lh-loose",
+      "--h1", "--h2", "--h3", "--h4", "--h5", "--h6"
+    ],
+    "spacing": [
+      "--space-0", "--space-0-5", "--space-1", "--space-1-5", "--space-2", "--space-2-5",
+      "--space-3", "--space-4", "--space-5", "--space-6", "--space-8", "--space-10",
+      "--gutter", "--container-padding"
+    ],
+    "density": [
+      "--density-compact-mult", "--density-cozy-mult"
+    ],
+    "layout": [
+      "--max-w-xs", "--max-w-sm", "--max-w-md", "--max-w-lg", "--max-w-xl",
+      "--bp-xs", "--bp-sm", "--bp-md", "--bp-lg", "--bp-xl",
+      "--radius-sm", "--radius-md", "--radius-lg", "--radius-xl", "--radius"
+    ],
+    "elevation": [
+      "--elevation-0", "--elevation-1", "--elevation-2", "--elevation-3"
+    ],
+    "motion": [
+      "--dur-quick", "--dur-short", "--dur-medium", "--dur-long",
+      "--ease-standard", "--ease-decel", "--transition-default", "--reduced-motion"
+    ],
+    "a11y": [
+      "--focus-width", "--focus-offset", "--focus-color", "--focus-outline",
+      "--control-min-h", "--touch-target", "--control-focus-shadow"
+    ],
+    "forms": [
+      "--form-padding-y", "--form-padding-x", "--form-font-size",
+      "--form-border", "--form-radius", "--form-bg", "--form-disabled-bg"
+    ],
+    "dev": [
+      "--dbg-grid", "--dbg-outline"
+    ]
+  },
+  "features": {
+    "themeSupport": "Supports light, dark, and forced-color modes via data-theme and media queries",
+    "semanticColorSystem": "Uses neutral and brand scales mapped to semantic roles",
+    "fluidTypography": "Implements fluid scaling between min/max type sizes",
+    "densityModes": "Supports compact and cozy layouts via CSS custom property multipliers",
+    "a11yEnhancements": "Tokens for focus outlines, high-contrast preference, and reduced motion",
+    "formSystem": "Defines spacing, borders, and background tokens for form controls"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px"
+    },
+    "densityModes": ["compact", "cozy"]
+  },
+  "a11y": {
+    "contrastModes": "Adjusts focus and border tokens when prefers-contrast: more",
+    "motionReduction": "Disables transitions when prefers-reduced-motion is active",
+    "forcedColors": "Overrides key tokens with system colors for accessibility"
+  },
+  "integrationNotes": [
+    "Must be imported first in the CSS cascade.",
+    "Other layers (typography, layout, components) consume these tokens via var().",
+    "Supports runtime theming via [data-theme] and density via [data-density].",
+    "Can be extended or overridden by theme-specific token layers."
+  ],
+  "aliases": {
+    "brand": "primary",
+    "neutral": "gray"
+  },
+  "related": ["base.css", "typography.css", "layout.css", "components.css"]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="ThemeLayer">
+  <div class="title">ThemeLayer</div>
+  <pre class="json-visible">{
+  "name": "ThemeLayer",
+  "version": "1.0.0",
+  "description": "Semantic and component-level variable mappings built on top of tokens.css. Provides theme variants, color-scheme hints, and accent overrides for brand customization.",
+  "url": "https://github.com/your-repo/theme.css",
+  "category": ["css", "theme", "semantic", "components"],
+  "dependsOn": ["DesignTokens"],
+  "provides": [
+    "Semantic variable mapping from tokens (surface, text, interactive, status)",
+    "Light and dark mode adjustments via [data-theme]",
+    "Accent theme variant for alternate brand palettes",
+    "Compact mode density modifier",
+    "Component-level aliases (buttons, inputs, cards, panels)",
+    "Color-scheme hints for user agent form control rendering"
+  ],
+  "targets": [
+    ":root",
+    ":root[data-theme=\"dark\"]",
+    ":root.theme-dark",
+    ":root.theme-light",
+    ":root.theme-accent",
+    ":root.theme-compact",
+    ".theme-surface-muted",
+    ".theme-surface-elevated",
+    "@media (prefers-color-scheme: dark)"
+  ],
+  "variablesDefined": {
+    "surface": [
+      "--surface-bg", "--canvas-bg", "--panel-bg", "--surface-weak",
+      "--card-bg", "--card-border", "--panel-radius", "--panel-padding"
+    ],
+    "text": [
+      "--text", "--text-weak", "--link-color", "--link-hover", "--link-pressed"
+    ],
+    "interactive": [
+      "--btn-bg", "--btn-fg", "--btn-bg-hover", "--btn-bg-pressed", "--btn-disabled-bg"
+    ],
+    "form": [
+      "--input-bg", "--input-border", "--input-radius", "--input-placeholder",
+      "--control-radius", "--control-border"
+    ],
+    "borders": [
+      "--divider", "--divider-subtle"
+    ],
+    "status": [
+      "--success", "--warning", "--danger", "--info"
+    ],
+    "elevation": [
+      "--shadow-sm", "--shadow-md", "--shadow-lg"
+    ],
+    "a11y": [
+      "--focus-ring", "--focus-offset"
+    ],
+    "decorative": [
+      "--muted-surface", "--brand-tint-10"
+    ]
+  },
+  "features": {
+    "colorSchemeHint": "Declares color-scheme: light/dark to guide UA controls and form styling.",
+    "themeVariants": "Supports light, dark, accent, and compact themes via data attributes or classes.",
+    "semanticBridging": "Connects low-level design tokens to higher-level component tokens.",
+    "brandTint": "Generates tint overlays from primary RGB tokens for contextual backgrounds."
+  },
+  "responsive": {
+    "mediaQueries": ["(prefers-color-scheme: dark)"]
+  },
+  "a11y": {
+    "focusSystem": "Aliases focus tokens from base layer to ensure visible outlines across themes.",
+    "systemIntegration": "Uses color-scheme property to align browser-native UI components with theme."
+  },
+  "integrationNotes": [
+    "Must be loaded after tokens.css to ensure variable inheritance.",
+    "Acts as a semantic mapping layer consumed by component stylesheets.",
+    "Use [data-theme] or .theme-* classes to toggle theme variants at runtime.",
+    "Accent variant can be applied globally or per-component for flexible branding."
+  ],
+  "aliases": {
+    "brand": "accent",
+    "surface": "panel",
+    "background": "canvas"
+  },
+  "related": ["tokens.css", "components.css", "layout.css"]
+}</pre>
+
+  <script type="application/json" data-engine="ThemeLayer">
+{
+  "name": "ThemeLayer",
+  "version": "1.0.0",
+  "description": "Semantic and component-level variable mappings built on top of tokens.css. Provides theme variants, color-scheme hints, and accent overrides for brand customization.",
+  "url": "https://github.com/your-repo/theme.css",
+  "category": ["css", "theme", "semantic", "components"],
+  "dependsOn": ["DesignTokens"],
+  "provides": [
+    "Semantic variable mapping from tokens (surface, text, interactive, status)",
+    "Light and dark mode adjustments via [data-theme]",
+    "Accent theme variant for alternate brand palettes",
+    "Compact mode density modifier",
+    "Component-level aliases (buttons, inputs, cards, panels)",
+    "Color-scheme hints for user agent form control rendering"
+  ],
+  "targets": [
+    ":root",
+    ":root[data-theme=\"dark\"]",
+    ":root.theme-dark",
+    ":root.theme-light",
+    ":root.theme-accent",
+    ":root.theme-compact",
+    ".theme-surface-muted",
+    ".theme-surface-elevated",
+    "@media (prefers-color-scheme: dark)"
+  ],
+  "variablesDefined": {
+    "surface": [
+      "--surface-bg", "--canvas-bg", "--panel-bg", "--surface-weak",
+      "--card-bg", "--card-border", "--panel-radius", "--panel-padding"
+    ],
+    "text": [
+      "--text", "--text-weak", "--link-color", "--link-hover", "--link-pressed"
+    ],
+    "interactive": [
+      "--btn-bg", "--btn-fg", "--btn-bg-hover", "--btn-bg-pressed", "--btn-disabled-bg"
+    ],
+    "form": [
+      "--input-bg", "--input-border", "--input-radius", "--input-placeholder",
+      "--control-radius", "--control-border"
+    ],
+    "borders": [
+      "--divider", "--divider-subtle"
+    ],
+    "status": [
+      "--success", "--warning", "--danger", "--info"
+    ],
+    "elevation": [
+      "--shadow-sm", "--shadow-md", "--shadow-lg"
+    ],
+    "a11y": [
+      "--focus-ring", "--focus-offset"
+    ],
+    "decorative": [
+      "--muted-surface", "--brand-tint-10"
+    ]
+  },
+  "features": {
+    "colorSchemeHint": "Declares color-scheme: light/dark to guide UA controls and form styling.",
+    "themeVariants": "Supports light, dark, accent, and compact themes via data attributes or classes.",
+    "semanticBridging": "Connects low-level design tokens to higher-level component tokens.",
+    "brandTint": "Generates tint overlays from primary RGB tokens for contextual backgrounds."
+  },
+  "responsive": {
+    "mediaQueries": ["(prefers-color-scheme: dark)"]
+  },
+  "a11y": {
+    "focusSystem": "Aliases focus tokens from base layer to ensure visible outlines across themes.",
+    "systemIntegration": "Uses color-scheme property to align browser-native UI components with theme."
+  },
+  "integrationNotes": [
+    "Must be loaded after tokens.css to ensure variable inheritance.",
+    "Acts as a semantic mapping layer consumed by component stylesheets.",
+    "Use [data-theme] or .theme-* classes to toggle theme variants at runtime.",
+    "Accent variant can be applied globally or per-component for flexible branding."
+  ],
+  "aliases": {
+    "brand": "accent",
+    "surface": "panel",
+    "background": "canvas"
+  },
+  "related": ["tokens.css", "components.css", "layout.css"]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="BaseReset">
+  <div class="title">BaseReset</div>
+  <pre class="json-visible">{
+  "name": "BaseReset",
+  "version": "1.0.0",
+  "description": "Normalized CSS reset and sensible defaults consuming design tokens (colors, typography, focus, motion).",
+  "url": "https://github.com/your-repo/base.css",
+  "category": ["css", "reset", "foundation", "a11y", "typography"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides design tokens such as --bg-default, --text-default, --focus-outline, etc."
+    }
+  ],
+  "provides": [
+    "HTML baseline reset",
+    "Typography and spacing scaffolding",
+    "Accessible focus and motion reduction styles",
+    "Utility classes: .visually-hidden, .clearfix, .isolate, .full-bleed"
+  ],
+  "targets": [
+    "html", "body", "p", "h1-h6", "a", "ul", "ol", "button", "input", "form", "media elements"
+  ],
+  "features": {
+    "boxModel": "Sets box-sizing: border-box globally",
+    "typography": "Applies font, size, and line-height from design tokens",
+    "links": "Token-driven color and hover styles",
+    "focus": "Accessible outlines using token variables",
+    "motion": "Disables animations when prefers-reduced-motion: reduce",
+    "print": "Print-safe defaults and hyperlink annotation"
+  },
+  "variablesUsed": [
+    "--bg-default",
+    "--text-default",
+    "--font-family-sans",
+    "--fs-base",
+    "--lh-default",
+    "--fw-regular",
+    "--brand-default",
+    "--brand-hover",
+    "--brand-foreground",
+    "--focus-outline",
+    "--focus-offset",
+    "--radius-sm",
+    "--space-4"
+  ],
+  "utilityClasses": {
+    ".visually-hidden": "Hides content visually but keeps it accessible to screen readers",
+    ".clearfix": "Clears floated children using pseudo-element",
+    ".isolate": "Forces a new stacking context using isolation: isolate",
+    ".full-bleed": "Expands an element to full viewport width inside centered layout"
+  },
+  "a11y": {
+    "focusVisible": "Uses :focus-visible and fallback for keyboard-only focus",
+    "reducedMotion": "Disables transitions and animations when user prefers reduced motion",
+    "printSupport": "Adds URL text to printed links for accessibility"
+  },
+  "examples": [
+    "<a href='#'>Link with token-driven hover and focus outline</a>",
+    "<div class='visually-hidden'>Screen-reader only text</div>",
+    "<section class='full-bleed'>Full-width section</section>"
+  ],
+  "integrationNotes": [
+    "Load after tokens.css to ensure variables resolve correctly.",
+    "Forms inherit typography and color styles by default; apply form.css for component-level refinement.",
+    "Focus styles adapt automatically to system accessibility preferences."
+  ],
+  "aliases": {},
+  "related": ["tokens.css", "forms.css", "layout.css"]
+}</pre>
+
+  <script type="application/json" data-engine="BaseReset">
+{
+  "name": "BaseReset",
+  "version": "1.0.0",
+  "description": "Normalized CSS reset and sensible defaults consuming design tokens (colors, typography, focus, motion).",
+  "url": "https://github.com/your-repo/base.css",
+  "category": ["css", "reset", "foundation", "a11y", "typography"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides design tokens such as --bg-default, --text-default, --focus-outline, etc."
+    }
+  ],
+  "provides": [
+    "HTML baseline reset",
+    "Typography and spacing scaffolding",
+    "Accessible focus and motion reduction styles",
+    "Utility classes: .visually-hidden, .clearfix, .isolate, .full-bleed"
+  ],
+  "targets": [
+    "html", "body", "p", "h1-h6", "a", "ul", "ol", "button", "input", "form", "media elements"
+  ],
+  "features": {
+    "boxModel": "Sets box-sizing: border-box globally",
+    "typography": "Applies font, size, and line-height from design tokens",
+    "links": "Token-driven color and hover styles",
+    "focus": "Accessible outlines using token variables",
+    "motion": "Disables animations when prefers-reduced-motion: reduce",
+    "print": "Print-safe defaults and hyperlink annotation"
+  },
+  "variablesUsed": [
+    "--bg-default",
+    "--text-default",
+    "--font-family-sans",
+    "--fs-base",
+    "--lh-default",
+    "--fw-regular",
+    "--brand-default",
+    "--brand-hover",
+    "--brand-foreground",
+    "--focus-outline",
+    "--focus-offset",
+    "--radius-sm",
+    "--space-4"
+  ],
+  "utilityClasses": {
+    ".visually-hidden": "Hides content visually but keeps it accessible to screen readers",
+    ".clearfix": "Clears floated children using pseudo-element",
+    ".isolate": "Forces a new stacking context using isolation: isolate",
+    ".full-bleed": "Expands an element to full viewport width inside centered layout"
+  },
+  "a11y": {
+    "focusVisible": "Uses :focus-visible and fallback for keyboard-only focus",
+    "reducedMotion": "Disables transitions and animations when user prefers reduced motion",
+    "printSupport": "Adds URL text to printed links for accessibility"
+  },
+  "examples": [
+    "<a href='#'>Link with token-driven hover and focus outline</a>",
+    "<div class='visually-hidden'>Screen-reader only text</div>",
+    "<section class='full-bleed'>Full-width section</section>"
+  ],
+  "integrationNotes": [
+    "Load after tokens.css to ensure variables resolve correctly.",
+    "Forms inherit typography and color styles by default; apply form.css for component-level refinement.",
+    "Focus styles adapt automatically to system accessibility preferences."
+  ],
+  "aliases": {},
+  "related": ["tokens.css", "forms.css", "layout.css"]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="TypographyLayer">
+  <div class="title">TypographyLayer</div>
+  <pre class="json-visible">{
+  "name": "TypographyLayer",
+  "version": "1.0.1",
+  "description": "Typography foundation layer consuming final design tokens for full font shorthand (h1–h6), weights, colors, and spacing rhythm. Updated to use shorthand font tokens for headings.",
+  "url": "https://github.com/your-repo/typography.css",
+  "category": ["css", "typography", "foundation", "a11y", "tokens"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides typography, spacing, color, and radius tokens used throughout the layer."
+    },
+    {
+      "name": "base.css",
+      "optional": true,
+      "description": "Recommended to load before this layer to normalize base element styles."
+    }
+  ],
+  "provides": [
+    "Heading and paragraph typography using shorthand font tokens",
+    "Link colors and transitions with brand tokens",
+    "Inline code, preformatted text, and blockquote styling",
+    "List and definition list spacing rhythm",
+    "Typography-specific utilities (alignment, truncation, display classes)"
+  ],
+  "targets": [
+    "html", "body", "h1-h6", "p", "a", "ul", "ol", "dl", "code", "pre", "blockquote"
+  ],
+  "variablesUsed": [
+    "--font-family-sans",
+    "--font-family-mono",
+    "--fs-base",
+    "--fs-sm",
+    "--fs-lg",
+    "--fs-3xl",
+    "--fs-4xl",
+    "--lh-default",
+    "--fw-regular",
+    "--fw-medium",
+    "--fw-semibold",
+    "--fw-bold",
+    "--brand-default",
+    "--brand-hover",
+    "--brand-pressed",
+    "--text-default",
+    "--text-muted",
+    "--border-subtle",
+    "--radius",
+    "--radius-sm",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--dur-medium",
+    "--dur-quick",
+    "--ease-standard",
+    "--h1",
+    "--h2",
+    "--h3",
+    "--h4",
+    "--h5",
+    "--h6"
+  ],
+  "features": {
+    "headingScale": "Applies shorthand font tokens (h1–h6) with responsive font-size overrides",
+    "paragraphRhythm": "Maintains consistent vertical spacing using space tokens",
+    "linkStates": "Brand-driven colors for default, hover, and pressed states",
+    "codeFormatting": "Inline and block code styled with mono font and background tint",
+    "blockquote": "Soft background and left border using subtle tokens",
+    "listSpacing": "Consistent spacing and padding for unordered/ordered/definition lists",
+    "utilities": "Alignment (.text-center/right/left), truncation, display-1 hero size"
+  },
+  "utilityClasses": {
+    ".lead": "Larger introductory paragraph style with increased line-height",
+    ".text-center": "Centers text horizontally",
+    ".text-right": "Right-aligns text",
+    ".text-left": "Left-aligns text",
+    ".truncate": "One-line truncation with ellipsis",
+    ".display-1": "Large display heading for hero sections",
+    ".caption": "Small, muted caption text",
+    ".heading-anchor": "Optional inline anchor icon shown on heading hover"
+  },
+  "responsive": {
+    "breakpoints": {
+      "md": "(min-width: 768px)"
+    },
+    "rules": [
+      "Increases h1 and h2 size slightly above md breakpoint"
+    ]
+  },
+  "a11y": {
+    "printSupport": "Adds link URLs after printed links; avoids breaking pre blocks",
+    "contrast": "Uses tokenized text and muted colors for consistent legibility"
+  },
+  "examples": [
+    "<h1>Heading 1 <a class='heading-anchor' href='#'>#</a></h1>",
+    "<p class='lead'>A lead paragraph introducing a section.</p>",
+    "<a href='#'>Brand-colored link with tokenized hover and focus states</a>",
+    "<pre><code>const example = true;</code></pre>",
+    "<blockquote><p>Design is not just what it looks like.</p></blockquote>"
+  ],
+  "integrationNotes": [
+    "Load after tokens.css and base.css for correct variable resolution.",
+    "Uses shorthand font tokens (--h1–--h6) for headings to ensure consistency across themes.",
+    "Typography utilities (.lead, .truncate, .caption) can be used within components.",
+    "Responsive adjustments scale h1/h2 sizes at the md breakpoint."
+  ],
+  "aliases": {},
+  "related": ["tokens.css", "base.css", "forms.css", "components.css"]
+}</pre>
+
+  <script type="application/json" data-engine="TypographyLayer">
+{
+  "name": "TypographyLayer",
+  "version": "1.0.1",
+  "description": "Typography foundation layer consuming final design tokens for full font shorthand (h1–h6), weights, colors, and spacing rhythm. Updated to use shorthand font tokens for headings.",
+  "url": "https://github.com/your-repo/typography.css",
+  "category": ["css", "typography", "foundation", "a11y", "tokens"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides typography, spacing, color, and radius tokens used throughout the layer."
+    },
+    {
+      "name": "base.css",
+      "optional": true,
+      "description": "Recommended to load before this layer to normalize base element styles."
+    }
+  ],
+  "provides": [
+    "Heading and paragraph typography using shorthand font tokens",
+    "Link colors and transitions with brand tokens",
+    "Inline code, preformatted text, and blockquote styling",
+    "List and definition list spacing rhythm",
+    "Typography-specific utilities (alignment, truncation, display classes)"
+  ],
+  "targets": [
+    "html", "body", "h1-h6", "p", "a", "ul", "ol", "dl", "code", "pre", "blockquote"
+  ],
+  "variablesUsed": [
+    "--font-family-sans",
+    "--font-family-mono",
+    "--fs-base",
+    "--fs-sm",
+    "--fs-lg",
+    "--fs-3xl",
+    "--fs-4xl",
+    "--lh-default",
+    "--fw-regular",
+    "--fw-medium",
+    "--fw-semibold",
+    "--fw-bold",
+    "--brand-default",
+    "--brand-hover",
+    "--brand-pressed",
+    "--text-default",
+    "--text-muted",
+    "--border-subtle",
+    "--radius",
+    "--radius-sm",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--dur-medium",
+    "--dur-quick",
+    "--ease-standard",
+    "--h1",
+    "--h2",
+    "--h3",
+    "--h4",
+    "--h5",
+    "--h6"
+  ],
+  "features": {
+    "headingScale": "Applies shorthand font tokens (h1–h6) with responsive font-size overrides",
+    "paragraphRhythm": "Maintains consistent vertical spacing using space tokens",
+    "linkStates": "Brand-driven colors for default, hover, and pressed states",
+    "codeFormatting": "Inline and block code styled with mono font and background tint",
+    "blockquote": "Soft background and left border using subtle tokens",
+    "listSpacing": "Consistent spacing and padding for unordered/ordered/definition lists",
+    "utilities": "Alignment (.text-center/right/left), truncation, display-1 hero size"
+  },
+  "utilityClasses": {
+    ".lead": "Larger introductory paragraph style with increased line-height",
+    ".text-center": "Centers text horizontally",
+    ".text-right": "Right-aligns text",
+    ".text-left": "Left-aligns text",
+    ".truncate": "One-line truncation with ellipsis",
+    ".display-1": "Large display heading for hero sections",
+    ".caption": "Small, muted caption text",
+    ".heading-anchor": "Optional inline anchor icon shown on heading hover"
+  },
+  "responsive": {
+    "breakpoints": {
+      "md": "(min-width: 768px)"
+    },
+    "rules": [
+      "Increases h1 and h2 size slightly above md breakpoint"
+    ]
+  },
+  "a11y": {
+    "printSupport": "Adds link URLs after printed links; avoids breaking pre blocks",
+    "contrast": "Uses tokenized text and muted colors for consistent legibility"
+  },
+  "examples": [
+    "<h1>Heading 1 <a class='heading-anchor' href='#'>#</a></h1>",
+    "<p class='lead'>A lead paragraph introducing a section.</p>",
+    "<a href='#'>Brand-colored link with tokenized hover and focus states</a>",
+    "<pre><code>const example = true;</code></pre>",
+    "<blockquote><p>Design is not just what it looks like.</p></blockquote>"
+  ],
+  "integrationNotes": [
+    "Load after tokens.css and base.css for correct variable resolution.",
+    "Uses shorthand font tokens (--h1–--h6) for headings to ensure consistency across themes.",
+    "Typography utilities (.lead, .truncate, .caption) can be used within components.",
+    "Responsive adjustments scale h1/h2 sizes at the md breakpoint."
+  ],
+  "aliases": {},
+  "related": ["tokens.css", "base.css", "forms.css", "components.css"]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="LayoutLayer">
+  <div class="title">LayoutLayer</div>
+  <pre class="json-visible">{
+  "name": "LayoutLayer",
+  "version": "1.0.0",
+  "description": "Layout foundation providing containers, responsive flex/grid systems, spacing stacks, wrappers, and alignment utilities using design tokens.",
+  "url": "https://github.com/your-repo/layout.css",
+  "category": ["css", "layout", "grid", "utilities", "responsive", "foundation"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides breakpoint, spacing, gutter, radius, and elevation tokens."
+    },
+    {
+      "name": "base.css",
+      "optional": true,
+      "description": "Optional: ensures consistent box sizing and element defaults."
+    }
+  ],
+  "provides": [
+    "Centered container system with responsive max-widths",
+    "12-column flexbox grid with breakpoint variants (.sm, .md, .lg)",
+    "CSS grid helpers (auto-fit/fill and fixed column counts)",
+    "Stack and inline-stack utilities with gap control",
+    "Panels and wrappers with elevation, radius, and spacing tokens",
+    "Alignment and justification helpers for layout composition",
+    "Overflow, containment, and motion-safe behaviors"
+  ],
+  "targets": [
+    ".container",
+    ".container-fluid",
+    ".row",
+    ".col-*",
+    ".grid",
+    ".stack",
+    ".inline-stack",
+    ".wrapper",
+    ".card",
+    ".sticky-top",
+    ".center-screen"
+  ],
+  "variablesUsed": [
+    "--max-w-md",
+    "--max-w-lg",
+    "--max-w-xl",
+    "--container-padding",
+    "--gutter",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--radius",
+    "--bg-elevated",
+    "--border-default",
+    "--elevation-1"
+  ],
+  "features": {
+    "containers": "Fluid and fixed-width containers with responsive breakpoints",
+    "gridSystem": "12-column flex grid with .col-1–12 span classes and responsive prefixes (.sm, .md, .lg)",
+    "cssGrid": "Native CSS grid helpers (.grid, .grid-auto-fit, .grid-cols-3, etc.)",
+    "spacing": "Stack and inline-stack utilities using tokenized gap values",
+    "cardsAndWrappers": "Tokenized wrapper and card components with radius, background, and shadow",
+    "alignment": "Flex alignment utilities for vertical and horizontal placement",
+    "overflowContainment": "Utility helpers for managing overflow and containment contexts"
+  },
+  "utilityClasses": {
+    ".container": "Centered max-width container with horizontal padding",
+    ".container-fluid": "Full-width container with no side padding",
+    ".row": "Flex container for grid columns with negative gutter margins",
+    ".col": "Column cell that flexes equally within a .row",
+    ".col-[1–12]": "Fixed-span columns based on 12-grid fraction",
+    ".grid": "Display grid with token-based gap spacing",
+    ".grid-auto-fit": "Responsive grid filling available space automatically",
+    ".stack": "Vertical layout stack with customizable gap",
+    ".inline-stack": "Horizontal stack for inline elements with gap control",
+    ".wrapper": "Tokenized padded panel with background and rounded corners",
+    ".card": "Elevated container with optional header, body, and footer sections",
+    ".sticky-top": "Sticky header helper with z-index and inherited background",
+    ".center-screen": "Fullscreen grid centering layout",
+    ".align-*": "Align-items utilities (start, center, end)",
+    ".justify-*": "Justify-content utilities (start, center, end, between, around)",
+    ".overflow-auto": "Adds scrollbars as needed",
+    ".overflow-hidden": "Hides overflowing content",
+    ".contain": "Applies containment for layout/paint/size contexts"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "(min-width: 640px)",
+      "md": "(min-width: 768px)",
+      "lg": "(min-width: 1024px)",
+      "xl": "(min-width: 1280px)"
+    },
+    "rules": [
+      ".container resizes at sm/md/xl breakpoints using max-width tokens",
+      "Grid columns use responsive prefixes (.sm:col-6, .md:col-4, .lg:col-3)"
+    ]
+  },
+  "a11y": {
+    "reducedMotion": "Removes sticky positioning when motion reduction is preferred",
+    "printSupport": "Adds padding and avoids page-breaks inside rows during print"
+  },
+  "examples": [
+    "<div class='container'><div class='row'><div class='col-6'>Left</div><div class='col-6'>Right</div></div></div>",
+    "<div class='grid grid-cols-3'><div>1</div><div>2</div><div>3</div></div>",
+    "<div class='stack'><h2>Title</h2><p>Content paragraph</p></div>",
+    "<div class='card'><div class='card-header'>Header</div><div class='card-body'>Body</div></div>",
+    "<div class='center-screen'><p>Centered content</p></div>"
+  ],
+  "integrationNotes": [
+    "Load after tokens.css to ensure gutter, space, and radius variables resolve.",
+    "Works with BaseReset and TypographyLayer to form the global foundation.",
+    "Grid system is flex-based for predictable wrapping; CSS grid helpers can be combined as needed.",
+    "Reduced motion mode adjusts sticky behavior for accessibility.",
+    "Card and wrapper components use elevation and color tokens for consistent theme alignment."
+  ],
+  "aliases": {},
+  "related": ["tokens.css", "base.css", "typography.css", "forms.css", "components.css"]
+}</pre>
+
+  <script type="application/json" data-engine="LayoutLayer">
+{
+  "name": "LayoutLayer",
+  "version": "1.0.0",
+  "description": "Layout foundation providing containers, responsive flex/grid systems, spacing stacks, wrappers, and alignment utilities using design tokens.",
+  "url": "https://github.com/your-repo/layout.css",
+  "category": ["css", "layout", "grid", "utilities", "responsive", "foundation"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides breakpoint, spacing, gutter, radius, and elevation tokens."
+    },
+    {
+      "name": "base.css",
+      "optional": true,
+      "description": "Optional: ensures consistent box sizing and element defaults."
+    }
+  ],
+  "provides": [
+    "Centered container system with responsive max-widths",
+    "12-column flexbox grid with breakpoint variants (.sm, .md, .lg)",
+    "CSS grid helpers (auto-fit/fill and fixed column counts)",
+    "Stack and inline-stack utilities with gap control",
+    "Panels and wrappers with elevation, radius, and spacing tokens",
+    "Alignment and justification helpers for layout composition",
+    "Overflow, containment, and motion-safe behaviors"
+  ],
+  "targets": [
+    ".container",
+    ".container-fluid",
+    ".row",
+    ".col-*",
+    ".grid",
+    ".stack",
+    ".inline-stack",
+    ".wrapper",
+    ".card",
+    ".sticky-top",
+    ".center-screen"
+  ],
+  "variablesUsed": [
+    "--max-w-md",
+    "--max-w-lg",
+    "--max-w-xl",
+    "--container-padding",
+    "--gutter",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--radius",
+    "--bg-elevated",
+    "--border-default",
+    "--elevation-1"
+  ],
+  "features": {
+    "containers": "Fluid and fixed-width containers with responsive breakpoints",
+    "gridSystem": "12-column flex grid with .col-1–12 span classes and responsive prefixes (.sm, .md, .lg)",
+    "cssGrid": "Native CSS grid helpers (.grid, .grid-auto-fit, .grid-cols-3, etc.)",
+    "spacing": "Stack and inline-stack utilities using tokenized gap values",
+    "cardsAndWrappers": "Tokenized wrapper and card components with radius, background, and shadow",
+    "alignment": "Flex alignment utilities for vertical and horizontal placement",
+    "overflowContainment": "Utility helpers for managing overflow and containment contexts"
+  },
+  "utilityClasses": {
+    ".container": "Centered max-width container with horizontal padding",
+    ".container-fluid": "Full-width container with no side padding",
+    ".row": "Flex container for grid columns with negative gutter margins",
+    ".col": "Column cell that flexes equally within a .row",
+    ".col-[1–12]": "Fixed-span columns based on 12-grid fraction",
+    ".grid": "Display grid with token-based gap spacing",
+    ".grid-auto-fit": "Responsive grid filling available space automatically",
+    ".stack": "Vertical layout stack with customizable gap",
+    ".inline-stack": "Horizontal stack for inline elements with gap control",
+    ".wrapper": "Tokenized padded panel with background and rounded corners",
+    ".card": "Elevated container with optional header, body, and footer sections",
+    ".sticky-top": "Sticky header helper with z-index and inherited background",
+    ".center-screen": "Fullscreen grid centering layout",
+    ".align-*": "Align-items utilities (start, center, end)",
+    ".justify-*": "Justify-content utilities (start, center, end, between, around)",
+    ".overflow-auto": "Adds scrollbars as needed",
+    ".overflow-hidden": "Hides overflowing content",
+    ".contain": "Applies containment for layout/paint/size contexts"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "(min-width: 640px)",
+      "md": "(min-width: 768px)",
+      "lg": "(min-width: 1024px)",
+      "xl": "(min-width: 1280px)"
+    },
+    "rules": [
+      ".container resizes at sm/md/xl breakpoints using max-width tokens",
+      "Grid columns use responsive prefixes (.sm:col-6, .md:col-4, .lg:col-3)"
+    ]
+  },
+  "a11y": {
+    "reducedMotion": "Removes sticky positioning when motion reduction is preferred",
+    "printSupport": "Adds padding and avoids page-breaks inside rows during print"
+  },
+  "examples": [
+    "<div class='container'><div class='row'><div class='col-6'>Left</div><div class='col-6'>Right</div></div></div>",
+    "<div class='grid grid-cols-3'><div>1</div><div>2</div><div>3</div></div>",
+    "<div class='stack'><h2>Title</h2><p>Content paragraph</p></div>",
+    "<div class='card'><div class='card-header'>Header</div><div class='card-body'>Body</div></div>",
+    "<div class='center-screen'><p>Centered content</p></div>"
+  ],
+  "integrationNotes": [
+    "Load after tokens.css to ensure gutter, space, and radius variables resolve.",
+    "Works with BaseReset and TypographyLayer to form the global foundation.",
+    "Grid system is flex-based for predictable wrapping; CSS grid helpers can be combined as needed.",
+    "Reduced motion mode adjusts sticky behavior for accessibility.",
+    "Card and wrapper components use elevation and color tokens for consistent theme alignment."
+  ],
+  "aliases": {},
+  "related": ["tokens.css", "base.css", "typography.css", "forms.css", "components.css"]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="UtilitiesLayer">
+  <div class="title">UtilitiesLayer</div>
+  <pre class="json-visible">{
+  "name": "UtilitiesLayer",
+  "version": "1.0.0",
+  "description": "Atomic utility classes for spacing, display, flex alignment, text formatting, sizing, borders, shadows, positioning, and accessibility, built from final design tokens.",
+  "url": "https://github.com/your-repo/utilities.css",
+  "category": ["css", "utilities", "atomic", "responsive", "foundation"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides design tokens for spacing, color, typography, border, radius, and elevation."
+    },
+    {
+      "name": "base.css",
+      "optional": true,
+      "description": "Optional base reset ensuring consistent rendering across browsers."
+    }
+  ],
+  "provides": [
+    "Margin and padding utilities using --space-* tokens",
+    "Display and responsive visibility helpers",
+    "Flexbox and alignment shortcuts for layout composition",
+    "Text alignment, transformation, color, and weight utilities",
+    "Sizing, width, height, and fit-content helpers",
+    "Borders, radius, and elevation (shadow) utilities",
+    "Positioning, z-index, overflow, and visibility management",
+    "Cursor and interaction helpers",
+    "Accessibility utilities (sr-only, focus-ring)",
+    "Responsive typography and motion-safe defaults"
+  ],
+  "targets": [
+    ".m-*",
+    ".p-*",
+    ".d-*",
+    ".flex-*",
+    ".text-*",
+    ".fw-*",
+    ".w-*",
+    ".h-*",
+    ".border*",
+    ".rounded*",
+    ".shadow*",
+    ".position-*",
+    ".z-*",
+    ".overflow-*",
+    ".cursor-*",
+    ".sr-only",
+    ".focus-ring"
+  ],
+  "variablesUsed": [
+    "--space-0",
+    "--space-1",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--space-8",
+    "--space-10",
+    "--text-muted",
+    "--brand-default",
+    "--success-default",
+    "--warning-default",
+    "--danger-default",
+    "--fw-regular",
+    "--fw-medium",
+    "--fw-semibold",
+    "--fw-bold",
+    "--border-default",
+    "--border-subtle",
+    "--radius",
+    "--radius-sm",
+    "--radius-lg",
+    "--elevation-1",
+    "--elevation-2",
+    "--elevation-3",
+    "--focus-outline",
+    "--focus-offset",
+    "--fs-sm",
+    "--fs-base",
+    "--fs-lg",
+    "--fs-xl"
+  ],
+  "features": {
+    "spacing": "Token-based margin/padding utilities with directional variants",
+    "display": "Block, inline, flex, grid, and responsive visibility classes",
+    "flexAlignment": "Atomic flex-direction, wrap, gap, and align/justify helpers",
+    "typography": "Text alignment, transformation, color, and responsive sizing",
+    "sizing": "Width, height, min/max dimension helpers",
+    "borders": "Border visibility, color, and radius utilities with design tokens",
+    "elevation": "Shadow utilities reflecting elevation levels 1–3",
+    "positioning": "Static, relative, absolute, fixed, and sticky positioning helpers",
+    "zIndex": "Common z-index scales (sticky, dropdown, overlay)",
+    "overflow": "Control visibility and scrolling behavior",
+    "accessibility": "sr-only, focus-ring, and motion-reduction support",
+    "interaction": "Cursor and hover intent helpers"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "(min-width: 640px)",
+      "md": "(min-width: 768px)",
+      "lg": "(min-width: 1024px)"
+    },
+    "utilities": [
+      ".sm:d-flex, .md:d-none, .lg:d-block — responsive display classes",
+      ".md:text-lg, .md:text-xl — responsive text sizing"
+    ]
+  },
+  "a11y": {
+    "focusManagement": "Adds consistent token-based focus outline via .focus-ring",
+    "screenReaderSupport": "Hides content visually while preserving screen reader access via .sr-only",
+    "reducedMotion": "Globally disables transitions and animations when user prefers reduced motion"
+  },
+  "examples": [
+    "<div class='p-4 m-2 border rounded shadow-sm'>Box with padding and shadow</div>",
+    "<div class='d-flex justify-between items-center gap-3'>...</div>",
+    "<span class='text-primary fw-600 text-upper'>Primary Label</span>",
+    "<button class='focus-ring cursor-pointer'>Accessible Button</button>",
+    "<div class='sr-only'>Screen reader only text</div>"
+  ],
+  "integrationNotes": [
+    "Intended to load after Base, Typography, and Layout layers.",
+    "Utility classes can override component styles using !important for atomic overrides.",
+    "Tokens drive all spacing, color, radius, and elevation values for consistency.",
+    "Reduced motion support globally disables animations and transitions when system preferences are set."
+  ],
+  "related": [
+    "tokens.css",
+    "base.css",
+    "typography.css",
+    "layout.css",
+    "forms.css",
+    "components.css"
+  ]
+}</pre>
+
+  <script type="application/json" data-engine="UtilitiesLayer">
+{
+  "name": "UtilitiesLayer",
+  "version": "1.0.0",
+  "description": "Atomic utility classes for spacing, display, flex alignment, text formatting, sizing, borders, shadows, positioning, and accessibility, built from final design tokens.",
+  "url": "https://github.com/your-repo/utilities.css",
+  "category": ["css", "utilities", "atomic", "responsive", "foundation"],
+  "dependsOn": [
+    {
+      "name": "tokens.css",
+      "description": "Provides design tokens for spacing, color, typography, border, radius, and elevation."
+    },
+    {
+      "name": "base.css",
+      "optional": true,
+      "description": "Optional base reset ensuring consistent rendering across browsers."
+    }
+  ],
+  "provides": [
+    "Margin and padding utilities using --space-* tokens",
+    "Display and responsive visibility helpers",
+    "Flexbox and alignment shortcuts for layout composition",
+    "Text alignment, transformation, color, and weight utilities",
+    "Sizing, width, height, and fit-content helpers",
+    "Borders, radius, and elevation (shadow) utilities",
+    "Positioning, z-index, overflow, and visibility management",
+    "Cursor and interaction helpers",
+    "Accessibility utilities (sr-only, focus-ring)",
+    "Responsive typography and motion-safe defaults"
+  ],
+  "targets": [
+    ".m-*",
+    ".p-*",
+    ".d-*",
+    ".flex-*",
+    ".text-*",
+    ".fw-*",
+    ".w-*",
+    ".h-*",
+    ".border*",
+    ".rounded*",
+    ".shadow*",
+    ".position-*",
+    ".z-*",
+    ".overflow-*",
+    ".cursor-*",
+    ".sr-only",
+    ".focus-ring"
+  ],
+  "variablesUsed": [
+    "--space-0",
+    "--space-1",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-5",
+    "--space-6",
+    "--space-8",
+    "--space-10",
+    "--text-muted",
+    "--brand-default",
+    "--success-default",
+    "--warning-default",
+    "--danger-default",
+    "--fw-regular",
+    "--fw-medium",
+    "--fw-semibold",
+    "--fw-bold",
+    "--border-default",
+    "--border-subtle",
+    "--radius",
+    "--radius-sm",
+    "--radius-lg",
+    "--elevation-1",
+    "--elevation-2",
+    "--elevation-3",
+    "--focus-outline",
+    "--focus-offset",
+    "--fs-sm",
+    "--fs-base",
+    "--fs-lg",
+    "--fs-xl"
+  ],
+  "features": {
+    "spacing": "Token-based margin/padding utilities with directional variants",
+    "display": "Block, inline, flex, grid, and responsive visibility classes",
+    "flexAlignment": "Atomic flex-direction, wrap, gap, and align/justify helpers",
+    "typography": "Text alignment, transformation, color, and responsive sizing",
+    "sizing": "Width, height, min/max dimension helpers",
+    "borders": "Border visibility, color, and radius utilities with design tokens",
+    "elevation": "Shadow utilities reflecting elevation levels 1–3",
+    "positioning": "Static, relative, absolute, fixed, and sticky positioning helpers",
+    "zIndex": "Common z-index scales (sticky, dropdown, overlay)",
+    "overflow": "Control visibility and scrolling behavior",
+    "accessibility": "sr-only, focus-ring, and motion-reduction support",
+    "interaction": "Cursor and hover intent helpers"
+  },
+  "responsive": {
+    "breakpoints": {
+      "sm": "(min-width: 640px)",
+      "md": "(min-width: 768px)",
+      "lg": "(min-width: 1024px)"
+    },
+    "utilities": [
+      ".sm:d-flex, .md:d-none, .lg:d-block — responsive display classes",
+      ".md:text-lg, .md:text-xl — responsive text sizing"
+    ]
+  },
+  "a11y": {
+    "focusManagement": "Adds consistent token-based focus outline via .focus-ring",
+    "screenReaderSupport": "Hides content visually while preserving screen reader access via .sr-only",
+    "reducedMotion": "Globally disables transitions and animations when user prefers reduced motion"
+  },
+  "examples": [
+    "<div class='p-4 m-2 border rounded shadow-sm'>Box with padding and shadow</div>",
+    "<div class='d-flex justify-between items-center gap-3'>...</div>",
+    "<span class='text-primary fw-600 text-upper'>Primary Label</span>",
+    "<button class='focus-ring cursor-pointer'>Accessible Button</button>",
+    "<div class='sr-only'>Screen reader only text</div>"
+  ],
+  "integrationNotes": [
+    "Intended to load after Base, Typography, and Layout layers.",
+    "Utility classes can override component styles using !important for atomic overrides.",
+    "Tokens drive all spacing, color, radius, and elevation values for consistency.",
+    "Reduced motion support globally disables animations and transitions when system preferences are set."
+  ],
+  "related": [
+    "tokens.css",
+    "base.css",
+    "typography.css",
+    "layout.css",
+    "forms.css",
+    "components.css"
+  ]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="ComponentsLayer">
+  <div class="title">Components (layer)</div>
+  <pre class="json-visible">{
+  "layer": "components",
+  "description": "Component layer defining UI primitives such as buttons, forms, cards, alerts, modals, toasts, and other interactive elements. References final design tokens for color, spacing, radius, typography, and elevation.",
+  "status": "stable",
+  "version": "1.0.0",
+  "tokens_used": [
+    "--brand-default",
+    "--brand-foreground",
+    "--brand-hover",
+    "--radius",
+    "--radius-sm",
+    "--radius-lg",
+    "--elevation-1",
+    "--elevation-2",
+    "--elevation-3",
+    "--overlay-60",
+    "--border-default",
+    "--border-subtle",
+    "--text-default",
+    "--text-muted",
+    "--success-default",
+    "--warning-default",
+    "--danger-default",
+    "--info-default",
+    "--fw-medium",
+    "--fw-regular",
+    "--fw-bold",
+    "--fs-sm",
+    "--fs-base",
+    "--fs-lg",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-6",
+    "--bg-elevated",
+    "--form-bg",
+    "--form-border",
+    "--form-radius",
+    "--form-disabled-bg",
+    "--control-focus-shadow",
+    "--control-min-h",
+    "--dur-quick",
+    "--dur-medium",
+    "--ease-standard",
+    "--ease-decel",
+    "--focus-outline",
+    "--focus-offset"
+  ],
+  "components": {
+    "buttons": ["btn", "btn-primary", "btn-secondary", "btn-outline", "btn-ghost", "btn-sm", "btn-lg", "btn-icon", "btn-block"],
+    "forms": ["form-group", "form-label", "form-control", "form-check", "input-group", "select"],
+    "cards": ["card", "card-header", "card-body", "card-footer", "card--elevated", "card--flat"],
+    "badges": ["badge", "badge--primary", "badge--muted"],
+    "alerts": ["alert", "alert--success", "alert--warning", "alert--danger", "alert--info"],
+    "navs": ["nav", "nav-item", "nav-link", "tabs"],
+    "dropdowns": ["dropdown", "dropdown-menu", "dropdown-item"],
+    "tooltips": ["tooltip", "tooltip-tip"],
+    "modals": ["modal", "modal-dialog", "modal-header", "modal-body", "modal-footer", "modal-backdrop"],
+    "toasts": ["toast-container", "toast"],
+    "progress": ["progress", "progress-bar", "skeleton"],
+    "avatars": ["avatar"],
+    "misc": ["divider"]
+  },
+  "animation_keyframes": ["spin", "shimmer"],
+  "accessibility": {
+    "focus_visible": true,
+    "reduced_motion": true,
+    "sr_only_support": true
+  },
+  "dependencies": ["tokens", "utilities"]
+}</pre>
+
+  <script type="application/json" data-engine="ComponentsLayer">
+{
+  "layer": "components",
+  "description": "Component layer defining UI primitives such as buttons, forms, cards, alerts, modals, toasts, and other interactive elements. References final design tokens for color, spacing, radius, typography, and elevation.",
+  "status": "stable",
+  "version": "1.0.0",
+  "tokens_used": [
+    "--brand-default",
+    "--brand-foreground",
+    "--brand-hover",
+    "--radius",
+    "--radius-sm",
+    "--radius-lg",
+    "--elevation-1",
+    "--elevation-2",
+    "--elevation-3",
+    "--overlay-60",
+    "--border-default",
+    "--border-subtle",
+    "--text-default",
+    "--text-muted",
+    "--success-default",
+    "--warning-default",
+    "--danger-default",
+    "--info-default",
+    "--fw-medium",
+    "--fw-regular",
+    "--fw-bold",
+    "--fs-sm",
+    "--fs-base",
+    "--fs-lg",
+    "--space-2",
+    "--space-3",
+    "--space-4",
+    "--space-6",
+    "--bg-elevated",
+    "--form-bg",
+    "--form-border",
+    "--form-radius",
+    "--form-disabled-bg",
+    "--control-focus-shadow",
+    "--control-min-h",
+    "--dur-quick",
+    "--dur-medium",
+    "--ease-standard",
+    "--ease-decel",
+    "--focus-outline",
+    "--focus-offset"
+  ],
+  "components": {
+    "buttons": ["btn", "btn-primary", "btn-secondary", "btn-outline", "btn-ghost", "btn-sm", "btn-lg", "btn-icon", "btn-block"],
+    "forms": ["form-group", "form-label", "form-control", "form-check", "input-group", "select"],
+    "cards": ["card", "card-header", "card-body", "card-footer", "card--elevated", "card--flat"],
+    "badges": ["badge", "badge--primary", "badge--muted"],
+    "alerts": ["alert", "alert--success", "alert--warning", "alert--danger", "alert--info"],
+    "navs": ["nav", "nav-item", "nav-link", "tabs"],
+    "dropdowns": ["dropdown", "dropdown-menu", "dropdown-item"],
+    "tooltips": ["tooltip", "tooltip-tip"],
+    "modals": ["modal", "modal-dialog", "modal-header", "modal-body", "modal-footer", "modal-backdrop"],
+    "toasts": ["toast-container", "toast"],
+    "progress": ["progress", "progress-bar", "skeleton"],
+    "avatars": ["avatar"],
+    "misc": ["divider"]
+  },
+  "animation_keyframes": ["spin", "shimmer"],
+  "accessibility": {
+    "focus_visible": true,
+    "reduced_motion": true,
+    "sr_only_support": true
+  },
+  "dependencies": ["tokens", "utilities"]
+}
+  </script>
+</div>
+
+<div class="block" data-engine="AnimationLayer">
+  <div class="title">AnimationLayer (truncated)</div>
+  <pre class="json-visible">{
+  "name": "AnimationLayer",
+  "version": "1.0.0",
+  "description": "Centralized keyframes, animation utilities, and transition helpers, respecting prefers-reduced-motion and tokenized durations from tokens.css.",
+  "url": "https://github.com/your-repo/animations.css",
+  "category": ["css", "animations", "motion", "utilities"],
+  "dependsOn": ["DesignTokens"],
+  "provides": [
+    "Keyframe definitions for common UI transitions (fade, slide, pop, spin, shimmer)",
+    "Composable animation utility classes for quick application",
+    "Transition helpers for opacity, transform, and default UI transitions",
+    "Motion-safe and reduced-motion-aware behavior via media queries and helper classes",
+    "Speed modifiers via semantic duration tokens (--dur-quick, --dur-medium, --dur-long)"
+  ],
+  "targets": [
+    ".animate-fade-in",
+    ".animate-fade-out",
+    ".animate-slide-up",
+    ".animate-slide-down",
+    ".animate-pop",
+    ".animate-spin",
+    ".animate-shimmer",
+    ".anim-fast",
+    ".anim-medium",
+    ".anim-slow",
+    ".transition-default",
+    ".transition-fade",
+    ".transition-transform",
+    ".motion-safe",
+    ".motion-reduced",
+    ".is-animating",
+    "@media (prefers-reduced-motion: reduce)"
+  ],
+  "variablesDefined": {
+    "animationDurations": [
+      "--dur-quick",
+      "--dur-short",
+      "--dur-medium",
+      "--dur-long"
+    ],
+    "animationEasing": [
+      "--ease-standard",
+      "--ease-dec"
+    ],
+    "transitions": [
+      "--transition-default"
+    ]
+  },
+  "features": {
+    "motionSafe": "Applies animations only when system prefers motion is allowed.",
+    "reducedMotion": "Automatically disables animations/transitions for users preferring reduced motion.",
+    "speedModifiers": "Semantic classes to adjust animation speed without modifying keyframes.",
+    "keyframeLibrary": "Provides reusable keyframes for common UI patterns (fade, slide, pop, spin, shimmer).",
+    "transitionHelpers": "Utility classes for smooth opacity and transform transitions."
+  },
+  "responsive": {
+    "mediaQueries": ["(prefers-reduced-motion: reduce)"]
+  },
+  "a11y": {
+    "reducedMotionSupport": "Honors user OS-level preference for reduced motion.",
+    "focusIntegration": "Combines with motion-safe toggles to avoid interfering with focus outlines or interactive feedback."
+  },
+  "integrationNotes": [
+    "Load after tokens.css to ensure duration and easing variables are available.",
+    "Use utility classes directly in markup or compose with JS-driven toggles.",
+    "Motion-safe and reduced-motion classes enable progressive enhancement.",
+    "Animation and transition classes can be combined with theme.css or component stylesheets."
+  ],
+  "aliases": {
+    "fast": "anim-fast",
+    "medium": "anim-medium",
+    "slow": "anim-slow"
+  },
+  "related": ["tokens.css", "theme.css", "components
+  </pre>
+
+  <script type="application/json" data-engine="AnimationLayer">
+{
+  "name": "AnimationLayer",
+  "version": "1.0.0",
+  "description": "Centralized keyframes, animation utilities, and transition helpers, respecting prefers-reduced-motion and tokenized durations from tokens.css.",
+  "url": "https://github.com/your-repo/animations.css",
+  "category": ["css", "animations", "motion", "utilities"],
+  "dependsOn": ["DesignTokens"],
+  "provides": [
+    "Keyframe definitions for common UI transitions (fade, slide, pop, spin, shimmer)",
+    "Composable animation utility classes for quick application",
+    "Transition helpers for opacity, transform, and default UI transitions",
+    "Motion-safe and reduced-motion-aware behavior via media queries and helper classes",
+    "Speed modifiers via semantic duration tokens (--dur-quick, --dur-medium, --dur-long)"
+  ],
+  "targets": [
+    ".animate-fade-in",
+    ".animate-fade-out",
+    ".animate-slide-up",
+    ".animate-slide-down",
+    ".animate-pop",
+    ".animate-spin",
+    ".animate-shimmer",
+    ".anim-fast",
+    ".anim-medium",
+    ".anim-slow",
+    ".transition-default",
+    ".transition-fade",
+    ".transition-transform",
+    ".motion-safe",
+    ".motion-reduced",
+    ".is-animating",
+    "@media (prefers-reduced-motion: reduce)"
+  ],
+  "variablesDefined": {
+    "animationDurations": [
+      "--dur-quick",
+      "--dur-short",
+      "--dur-medium",
+      "--dur-long"
+    ],
+    "animationEasing": [
+      "--ease-standard",
+      "--ease-dec"
+    ],
+    "transitions": [
+      "--transition-default"
+    ]
+  },
+  "features": {
+    "motionSafe": "Applies animations only when system prefers motion is allowed.",
+    "reducedMotion": "Automatically disables animations/transitions for users preferring reduced motion.",
+    "speedModifiers": "Semantic classes to adjust animation speed without modifying keyframes.",
+    "keyframeLibrary": "Provides reusable keyframes for common UI patterns (fade, slide, pop, spin, shimmer).",
+    "transitionHelpers": "Utility classes for smooth opacity and transform transitions."
+  },
+  "responsive": {
+    "mediaQueries": ["(prefers-reduced-motion: reduce)"]
+  },
+  "a11y": {
+    "reducedMotionSupport": "Honors user OS-level preference for reduced motion.",
+    "focusIntegration": "Combines with motion-safe toggles to avoid interfering with focus outlines or interactive feedback."
+  },
+  "integrationNotes": [
+    "Load after tokens.css to ensure duration and easing variables are available.",
+    "Use utility classes directly in markup or compose with JS-driven toggles.",
+    "Motion-safe and reduced-motion classes enable progressive enhancement.",
+    "Animation and transition classes can be combined with theme.css or component stylesheets."
+  ],
+  "aliases": {
+    "fast": "anim-fast",
+    "medium": "anim-medium",
+    "slow": "anim-slow"
+  },
+  "related": ["tokens.css", "theme
